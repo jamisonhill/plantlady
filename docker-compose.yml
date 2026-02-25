@@ -1,0 +1,81 @@
+version: '3.9'
+
+services:
+  plantlady-db:
+    image: postgres:16-alpine
+    container_name: plantlady-db
+    environment:
+      POSTGRES_DB: plantlady
+      POSTGRES_USER: plantlady
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - plantlady-db-volume:/var/lib/postgresql/data
+    # ports:
+    #   - "127.0.0.1:5432:5432"  # DB only accessible from docker network (not localhost)
+    networks:
+      - plantlady-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plantlady"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  plantlady-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: plantlady-api
+    environment:
+      DATABASE_URL: postgresql://plantlady:${DB_PASSWORD:-change_me}@plantlady-db:5432/plantlady
+      DEBUG: ${DEBUG:-false}
+    volumes:
+      - plantlady-photos-volume:/app/photos
+    # ports:
+    #   - "127.0.0.1:8000:8000"  # API only accessible from docker network via nginx
+    networks:
+      - plantlady-network
+    depends_on:
+      plantlady-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  plantlady-nginx:
+    image: nginx:alpine
+    container_name: plantlady-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - plantlady-frontend-volume:/usr/share/nginx/html:ro
+      - plantlady-photos-volume:/usr/share/nginx/photos:ro
+    ports:
+      - "3010:80"  # Exposed to Cloudflare tunnel
+    networks:
+      - plantlady-network
+    depends_on:
+      - plantlady-api
+    restart: unless-stopped
+
+volumes:
+  plantlady-db-volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /volume1/docker/plantlady/db
+  plantlady-photos-volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /volume1/docker/plantlady/photos
+  plantlady-frontend-volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /volume1/docker/plantlady/frontend
+
+networks:
+  plantlady-network:
+    driver: bridge

@@ -1,0 +1,33 @@
+# Frontend
+app/node_modules/
+app/dist/
+app/.env.local
+app/.env.*.local
+
+# Backend
+api/__pycache__/
+api/*.pyc
+api/.venv/
+api/.env
+api/photos/*
+!api/photos/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+*.log
+
+# Build
+dist/
+build/
