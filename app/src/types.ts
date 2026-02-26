@@ -53,3 +53,37 @@ export interface AuthContextType {
   selectUser: (user: User, season: Season) => void
   logout: () => void
 }
+
+// Individual Plants (My Plants feature)
+export interface IndividualPlant {
+  id: number
+  user_id: number
+  common_name: string
+  scientific_name?: string
+  location?: string
+  photo_url?: string
+  created_at: string
+}
+
+export interface CareSchedule {
+  id: number
+  plant_id: number
+  care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
+  frequency_days: number
+}
+
+export interface CareEvent {
+  id: number
+  plant_id: number
+  care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
+  event_date: string
+  notes?: string
+}
+
+export interface PlantHealth {
+  id: number
+  plant_id: number
+  status: 'HEALTHY' | 'WATCH' | 'STRUGGLING'
+  last_updated: string
+  notes?: string
+}

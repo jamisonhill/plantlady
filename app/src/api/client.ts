@@ -1,4 +1,4 @@
-import { User, Season, Variety, Batch, Event, EventType } from '../types'
+import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule } from '../types'
 
 const API_BASE = '/api'
 
@@ -75,5 +75,34 @@ export const client = {
       body: form
     })
     return handleResponse<{ photo_id: number }>(response)
+  },
+
+  // Individual Plants (My Plants)
+  async getPlants(userId: number): Promise<IndividualPlant[]> {
+    const response = await fetch(`${API_BASE}/individual-plants?user_id=${userId}`)
+    return handleResponse<IndividualPlant[]>(response)
+  },
+
+  async getPlantCareEvents(plantId: number): Promise<CareEvent[]> {
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-events`)
+    return handleResponse<CareEvent[]>(response)
+  },
+
+  async getPlantCareSchedule(plantId: number): Promise<CareSchedule[]> {
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-schedule`)
+    return handleResponse<CareSchedule[]>(response)
+  },
+
+  async logCareEvent(userId: number, plantId: number, data: {
+    care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
+    event_date: string
+    notes?: string
+  }): Promise<CareEvent> {
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-events?user_id=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return handleResponse<CareEvent>(response)
   }
 }
