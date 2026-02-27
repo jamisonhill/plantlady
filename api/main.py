@@ -12,8 +12,11 @@ from models import User, PlantBatch, Event
 from schemas import PINLogin, AuthResponse, UserStatsResponse
 from routers import plants, events, seasons, costs, distributions, photos
 
-# Password context for bcrypt hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password context for hashing (bcrypt primary, argon2 fallback)
+try:
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+except Exception:
+    pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # Create tables on startup
 Base.metadata.create_all(bind=engine)

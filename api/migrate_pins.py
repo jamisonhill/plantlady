@@ -5,7 +5,10 @@ from passlib.context import CryptContext
 from database import SessionLocal
 from models import User
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+try:
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+except Exception:
+    pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 def migrate_pins():
     """Hash all plaintext PINs and clear the pin field."""

@@ -11,12 +11,24 @@ from database import SessionLocal, engine, Base
 from models import User, Season, PlantVariety, PlantBatch, SeasonCost, EventType
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+try:
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+except Exception as e:
+    print(f"⚠ BCrypt not available: {e}")
+    print("  Using argon2 as fallback...")
+    pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 def hash_pin(pin: str) -> str:
     """Hash a 4-digit PIN."""
-    return pwd_context.hash(pin)
+    try:
+        return pwd_context.hash(pin)
+    except ValueError as e:
+        if "72 bytes" in str(e):
+            print(f"⚠ PIN hashing error (bcrypt byte limit), using argon2...")
+            alt_context = CryptContext(schemes=["argon2"], deprecated="auto")
+            return alt_context.hash(pin)
+        raise
 
 
 def create_users(db: Session):
