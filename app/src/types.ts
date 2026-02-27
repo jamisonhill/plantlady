@@ -13,6 +13,8 @@ export type EventType =
 export interface User {
   id: number
   name: string
+  display_color: string
+  created_at: string
 }
 
 export interface Season {
@@ -86,4 +88,10 @@ export interface PlantHealth {
   status: 'HEALTHY' | 'WATCH' | 'STRUGGLING'
   last_updated: string
   notes?: string
+}
+
+export interface UserStats {
+  batch_count: number
+  event_count: number
+  streak: number
 }

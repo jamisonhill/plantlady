@@ -27,6 +27,13 @@ class AuthResponse(BaseModel):
     created_at: datetime
 
 
+class UserStatsResponse(BaseModel):
+    """User statistics response."""
+    batch_count: int
+    event_count: int
+    streak: int
+
+
 # ============================================================================
 # Users
 # ============================================================================

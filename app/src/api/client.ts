@@ -1,4 +1,4 @@
-import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule } from '../types'
+import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats } from '../types'
 
 const API_BASE = '/api'
 
@@ -18,6 +18,12 @@ export const client = {
       body: JSON.stringify({ pin })
     })
     return handleResponse<User>(response)
+  },
+
+  // User Stats
+  async getUserStats(userId: number): Promise<UserStats> {
+    const response = await fetch(`${API_BASE}/users/${userId}/stats`)
+    return handleResponse<UserStats>(response)
   },
 
   // Seasons

@@ -3,12 +3,17 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import os
+from passlib.context import CryptContext
 
 from database import engine, Base, SessionLocal, get_db
-from models import User
-from schemas import PINLogin, AuthResponse
+from models import User, PlantBatch, Event
+from schemas import PINLogin, AuthResponse, UserStatsResponse
 from routers import plants, events, seasons, costs, distributions, photos
+
+# Password context for bcrypt hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create tables on startup
 Base.metadata.create_all(bind=engine)
@@ -71,7 +76,7 @@ async def login(request: PINLogin, db: Session = Depends(get_db)):
     """
     Verify PIN and return the matching user.
 
-    Each user has their own PIN (Jamison: 1017, Amy: 0304).
+    Validates the PIN against bcrypt-hashed pin_hash in the database.
     """
     pin = request.pin.strip()
 
@@ -81,8 +86,14 @@ async def login(request: PINLogin, db: Session = Depends(get_db)):
             detail="PIN must be 4 digits"
         )
 
-    # Look up user by PIN
-    user = db.query(User).filter(User.pin == pin).first()
+    # Find all users and check PIN against their pin_hash
+    users = db.query(User).all()
+    user = None
+    for u in users:
+        # Verify against bcrypt hash
+        if u.pin_hash and pwd_context.verify(pin, u.pin_hash):
+            user = u
+            break
 
     if not user:
         raise HTTPException(
@@ -110,6 +121,47 @@ async def get_users(db: Session = Depends(get_db)):
         }
         for user in users
     ]
+
+
+@app.get("/users/{user_id}/stats", response_model=UserStatsResponse)
+async def get_user_stats(user_id: int, db: Session = Depends(get_db)):
+    """Get user statistics (plants, events, streak)."""
+    from datetime import datetime, timedelta
+
+    # Count plant batches
+    batch_count = db.query(func.count(PlantBatch.id)).filter(
+        PlantBatch.user_id == user_id
+    ).scalar() or 0
+
+    # Count events
+    event_count = db.query(func.count(Event.id)).filter(
+        Event.user_id == user_id
+    ).scalar() or 0
+
+    # Calculate streak: count consecutive days ending today
+    streak = 0
+    today = datetime.utcnow().date()
+
+    # Get all distinct event dates for this user, ordered descending
+    events = db.query(Event).filter(Event.user_id == user_id).order_by(Event.event_date.desc()).all()
+
+    if events:
+        event_dates = sorted(set(e.event_date.date() for e in events), reverse=True)
+
+        # Count consecutive days from today backwards
+        current_date = today
+        for event_date in event_dates:
+            if event_date == current_date:
+                streak += 1
+                current_date -= timedelta(days=1)
+            else:
+                break
+
+    return UserStatsResponse(
+        batch_count=batch_count,
+        event_count=event_count,
+        streak=streak
+    )
 
 
 if __name__ == "__main__":

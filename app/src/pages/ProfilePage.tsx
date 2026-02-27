@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { client } from '../api/client';
+import { UserStats } from '../types';
 
 export const ProfilePage: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -11,6 +13,26 @@ export const ProfilePage: React.FC = () => {
     shareWithAmy: true,
     shareWithMarcus: false,
   });
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch user stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!currentUser?.id) return;
+      try {
+        const userStats = await client.getUserStats(currentUser.id);
+        setStats(userStats);
+      } catch (error) {
+        console.error('Failed to fetch user stats:', error);
+        // Stats will remain null, and we'll display a fallback
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [currentUser?.id]);
 
   const handleLogout = () => {
     logout();
@@ -31,7 +53,10 @@ export const ProfilePage: React.FC = () => {
                 @plantlover_{currentUser?.id || '0'}
               </p>
             </div>
-            <div className="w-14 h-14 bg-gradient-to-br from-brand-terracotta to-brand-sage rounded-full flex items-center justify-center text-white font-bold text-lg">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
+              style={{ backgroundColor: currentUser?.display_color || '#648655' }}
+            >
               {currentUser?.name?.charAt(0) || 'U'}
             </div>
           </div>
@@ -40,15 +65,21 @@ export const ProfilePage: React.FC = () => {
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--color-border)]">
             <div className="text-center">
               <p className="text-sm text-[var(--color-text-muted)]">🌿 Plants</p>
-              <p className="font-display text-xl font-bold">14</p>
+              <p className="font-display text-xl font-bold">
+                {statsLoading ? '-' : (stats?.batch_count ?? '-')}
+              </p>
             </div>
             <div className="text-center">
               <p className="text-sm text-[var(--color-text-muted)]">🔥 Streak</p>
-              <p className="font-display text-xl font-bold">12</p>
+              <p className="font-display text-xl font-bold">
+                {statsLoading ? '-' : (stats?.streak ?? '-')}
+              </p>
             </div>
             <div className="text-center">
               <p className="text-sm text-[var(--color-text-muted)]">💧 Tasks</p>
-              <p className="font-display text-xl font-bold">47</p>
+              <p className="font-display text-xl font-bold">
+                {statsLoading ? '-' : (stats?.event_count ?? '-')}
+              </p>
             </div>
           </div>
         </Card>
