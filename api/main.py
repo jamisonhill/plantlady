@@ -89,14 +89,19 @@ async def login(request: PINLogin, db: Session = Depends(get_db)):
             detail="PIN must be 4 digits"
         )
 
-    # Find all users and check PIN against their pin_hash
-    users = db.query(User).all()
-    user = None
-    for u in users:
-        # Verify against bcrypt hash
-        if u.pin_hash and pwd_context.verify(pin, u.pin_hash):
-            user = u
-            break
+    # Find user by PIN (check plaintext first for compatibility, then bcrypt hash)
+    user = db.query(User).filter(User.pin == pin).first()
+
+    # If not found by plaintext, try bcrypt hash
+    if not user:
+        users = db.query(User).all()
+        for u in users:
+            try:
+                if u.pin_hash and pwd_context.verify(pin, u.pin_hash):
+                    user = u
+                    break
+            except Exception:
+                pass  # Hash verification failed, continue
 
     if not user:
         raise HTTPException(
