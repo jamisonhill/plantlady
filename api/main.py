@@ -12,11 +12,8 @@ from models import User, PlantBatch, Event
 from schemas import PINLogin, AuthResponse, UserStatsResponse
 from routers import plants, events, seasons, costs, distributions, photos, individual_plants
 
-# Password context for hashing (bcrypt primary, argon2 fallback)
-try:
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-except Exception:
-    pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# Password context for hashing (argon2 primary for compatibility, supports both for verification)
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
 
 # Schema managed by Alembic migrations
 # Base.metadata.create_all(bind=engine)
