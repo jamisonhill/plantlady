@@ -49,13 +49,29 @@ A beautiful, mobile-friendly gardening tracker for collaborative plant managemen
    - API health: `curl http://localhost:3010/api/health`
    - Cloudflare Tunnel: `https://plants.yourdomain.com`
 
+---
+
+## 🗺️ **What's Next?**
+
+**Read `ROADMAP.md` for the complete project roadmap and next steps.**
+
+This is the **single source of truth** for:
+- What's completed ✅
+- What's in progress 🚀
+- What's next 📋
+- How to start the next phase
+
+Start with `ROADMAP.md` — it has everything you need to continue development.
+
+---
+
 ## Project Structure
 
 ```
 /
 ├── docker-compose.yml          # Portainer Stack definition
 ├── .env.example               # Environment variables template
-├── nextsteps.md               # Implementation checklist
+├── ROADMAP.md                 # 🗺️ **START HERE** — Project roadmap & next steps
 ├── api/                       # FastAPI backend
 │   ├── main.py               # Entry point
 │   ├── models.py             # SQLAlchemy ORM models (Phase 2)
