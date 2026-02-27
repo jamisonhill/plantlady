@@ -2,6 +2,25 @@
 
 A beautiful, mobile-friendly gardening tracker for collaborative plant management, logging milestones, costs, and gifting/trading across seasons.
 
+---
+
+## 🎯 **START HERE**
+
+### Coming Back to Work?
+1. **Read**: `CURRENT_STATUS.md` (where you left off)
+2. **Test**: Follow `PHASE_9_TEST_PLAN.md` to verify Phase 9
+3. **Plan**: Check `ROADMAP.md` for next phase
+
+### Want Project Overview?
+- **ROADMAP.md** — Complete project roadmap, all phases, long-term plan
+- **CURRENT_STATUS.md** — Where we are right now, what's next
+
+### Want to Deploy or Set Up?
+- See "Quick Start" section below
+- See "Docker Deployment (NAS)" for production setup
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -49,29 +68,20 @@ A beautiful, mobile-friendly gardening tracker for collaborative plant managemen
    - API health: `curl http://localhost:3010/api/health`
    - Cloudflare Tunnel: `https://plants.yourdomain.com`
 
----
-
-## 🗺️ **What's Next?**
-
-**Read `ROADMAP.md` for the complete project roadmap and next steps.**
-
-This is the **single source of truth** for:
-- What's completed ✅
-- What's in progress 🚀
-- What's next 📋
-- How to start the next phase
-
-Start with `ROADMAP.md` — it has everything you need to continue development.
-
----
 
 ## Project Structure
 
 ```
 /
+├── README.md                  # 👈 **START HERE** — Overview & documentation index
+├── CURRENT_STATUS.md          # 📍 Session checkpoint — What's being worked on now
+├── ROADMAP.md                 # 🗺️ Long-term project roadmap & all phases
+├── PHASE_9_TEST_PLAN.md       # 🧪 Testing instructions for Phase 9
+├── PHASE_9_VERIFICATION.md    # ✅ Task checklist for Phase 9
 ├── docker-compose.yml          # Portainer Stack definition
 ├── .env.example               # Environment variables template
-├── ROADMAP.md                 # 🗺️ **START HERE** — Project roadmap & next steps
+├── .env.local                 # Local NAS config (gitignored)
+├── scripts/nas-helper.sh      # 🔧 Helper script for NAS operations
 ├── api/                       # FastAPI backend
 │   ├── main.py               # Entry point
 │   ├── models.py             # SQLAlchemy ORM models (Phase 2)
