@@ -74,17 +74,7 @@ function App() {
           }
         />
 
-        {/* My Plants Routes */}
-        <Route
-          path="/my-plants"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <MyPlantsPage />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Plant Detail Route */}
         <Route
           path="/plant/:id"
           element={

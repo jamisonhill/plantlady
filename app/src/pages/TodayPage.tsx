@@ -1,66 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { CareCard } from '../components/CareCard';
 import { QuickLogCareModal } from '../components/QuickLogCareModal';
 import { UpcomingCarePicker, DayWithCare } from '../components/UpcomingCarePicker';
 import { ActivityCard } from '../components/ActivityCard';
 import { Button } from '../components/Button';
+import { client } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
-interface MockPlantWithCare {
-  id: number;
-  name: string;
+interface CareItem {
+  plantId: number;
+  plantName: string;
   careType: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
-  lastCareDate: string;
+  lastCareDate: string | null;
   daysOverdue: number;
 }
 
-// Mock data for today's care
-const mockCareDueToday: MockPlantWithCare[] = [
-  {
-    id: 1,
-    name: 'Monstera Deliciosa',
-    careType: 'WATERING',
-    lastCareDate: '2026-02-18',
-    daysOverdue: 2,
-  },
-  {
-    id: 2,
-    name: "Pothos 'Golden'",
-    careType: 'WATERING',
-    lastCareDate: '2026-02-12',
-    daysOverdue: 8,
-  },
-];
-
-// Mock upcoming care
-const mockUpcomingCare: DayWithCare[] = [
-  {
-    date: (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      return d;
-    })(),
-    careTypes: ['FERTILIZING'],
-  },
-  {
-    date: (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 3);
-      return d;
-    })(),
-    careTypes: ['WATERING', 'REPOTTING'],
-  },
-  {
-    date: (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 5);
-      return d;
-    })(),
-    careTypes: ['WATERING'],
-  },
-];
-
-// Mock friend activity
+// Mock friend activity (kept as-is per plan)
 const mockActivity = [
   { userName: 'Amy', action: 'watered', plantName: 'Snake Plant', timeAgo: '2h ago', careType: 'WATERING' as const },
   { userName: 'Marcus', action: 'fertilized', plantName: 'Philodendron', timeAgo: '4h ago', careType: 'FERTILIZING' as const },
@@ -68,23 +25,142 @@ const mockActivity = [
 ];
 
 export const TodayPage: React.FC = () => {
+  const navigate = useNavigate();
+  const auth = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [careDueToday, setCareDueToday] = useState<CareItem[]>([]);
+  const [upcomingCare, setUpcomingCare] = useState<DayWithCare[]>([]);
+  const [streak, setStreak] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedCare, setSelectedCare] = useState<MockPlantWithCare | null>(null);
+  const [selectedCare, setSelectedCare] = useState<CareItem | null>(null);
   const [logLoading, setLogLoading] = useState(false);
 
-  const handleOpenModal = (care: MockPlantWithCare) => {
+  // Load plants and calculate care needs
+  useEffect(() => {
+    async function loadPlants() {
+      if (!auth.currentUser) return;
+
+      try {
+        // Fetch user stats for streak
+        const stats = await client.getUserStats(auth.currentUser.id);
+        setStreak(stats.streak);
+
+        // Fetch all user plants
+        const userPlants = await client.getPlants(auth.currentUser.id);
+
+        // For each plant, fetch schedules and events to determine care due
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const careByDate: Map<string, Set<'WATERING' | 'FERTILIZING' | 'REPOTTING'>> = new Map();
+        const careDue: CareItem[] = [];
+
+        for (const plant of userPlants) {
+          const [schedules, events] = await Promise.all([
+            client.getPlantCareSchedule(plant.id),
+            client.getPlantCareEvents(plant.id),
+          ]);
+
+          for (const schedule of schedules) {
+            // Find last event of this care type
+            const lastEvent = events.find((e) => e.care_type === schedule.care_type);
+            let daysUntilDue: number;
+            let lastCareDate: string | null = null;
+
+            if (!lastEvent) {
+              daysUntilDue = -1;
+            } else {
+              lastCareDate = lastEvent.event_date;
+              const eventDate = new Date(lastEvent.event_date);
+              eventDate.setHours(0, 0, 0, 0);
+              const daysSinceLast = Math.floor(
+                (today.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24)
+              );
+              daysUntilDue = schedule.frequency_days - daysSinceLast;
+            }
+
+            // Add to care due today if overdue or due today
+            if (daysUntilDue <= 0) {
+              careDue.push({
+                plantId: plant.id,
+                plantName: plant.common_name,
+                careType: schedule.care_type,
+                lastCareDate,
+                daysOverdue: Math.abs(daysUntilDue),
+              });
+            }
+
+            // Build upcoming care calendar (next 7 days)
+            for (let i = 1; i <= 7; i++) {
+              const futureDate = new Date(today);
+              futureDate.setDate(futureDate.getDate() + i);
+              const futureDaysUntilDue = daysUntilDue + i;
+
+              if (futureDaysUntilDue === 0) {
+                const dateStr = futureDate.toISOString().split('T')[0];
+                if (!careByDate.has(dateStr)) {
+                  careByDate.set(dateStr, new Set());
+                }
+                careByDate.get(dateStr)!.add(schedule.care_type);
+              }
+            }
+          }
+        }
+
+        // Sort care due today by days overdue (most overdue first)
+        careDue.sort((a, b) => b.daysOverdue - a.daysOverdue);
+        setCareDueToday(careDue);
+
+        // Convert care by date to DayWithCare array
+        const upcoming: DayWithCare[] = [];
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() + i + 1);
+          const dateStr = date.toISOString().split('T')[0];
+          const careTypes = careByDate.get(dateStr);
+
+          if (careTypes && careTypes.size > 0) {
+            upcoming.push({
+              date,
+              careTypes: Array.from(careTypes),
+            });
+          }
+        }
+        setUpcomingCare(upcoming);
+      } catch (err) {
+        console.error('Failed to load plants:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPlants();
+  }, [auth?.currentUser]);
+
+  const handleOpenModal = (care: CareItem) => {
     setSelectedCare(care);
     setModalOpen(true);
   };
 
   const handleLogCare = async (notes?: string) => {
+    if (!auth.currentUser || !selectedCare) return;
+
     setLogLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log('Logged care:', selectedCare, notes);
+      const today = new Date().toISOString().split('T')[0];
+      await client.logCareEvent(auth.currentUser.id, selectedCare.plantId, {
+        care_type: selectedCare.careType,
+        notes,
+        event_date: today,
+      });
+
+      // Re-fetch plants to refresh the care data
       setModalOpen(false);
       setSelectedCare(null);
+      // Trigger reload by calling useEffect dependencies indirectly
+      window.location.reload();
+    } catch (err) {
+      console.error('Failed to log care:', err);
     } finally {
       setLogLoading(false);
     }
@@ -94,28 +170,38 @@ export const TodayPage: React.FC = () => {
     console.log('Selected day:', date);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-[100px] flex flex-col items-center justify-center p-4">
+        <p className="text-[var(--color-text-2)]">Loading your plants...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-[100px]">
       <div className="p-4 max-w-lg mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-display text-2xl font-bold mb-1">Good morning, Jamison 🌿</h1>
-          <p className="text-[var(--color-text-2)] text-sm">Streak: 🔥 12 days</p>
+          <h1 className="font-display text-2xl font-bold mb-1">
+            Good morning, {auth.currentUser?.name} 🌿
+          </h1>
+          <p className="text-[var(--color-text-2)] text-sm">Streak: 🔥 {streak} days</p>
         </div>
 
         {/* Care Due Today */}
         <section className="mb-8">
           <h2 className="font-display text-lg font-bold mb-4">💧 Care Due Today</h2>
-          {mockCareDueToday.length > 0 ? (
-            mockCareDueToday.map((care) => (
+          {careDueToday.length > 0 ? (
+            careDueToday.map((care) => (
               <CareCard
-                key={care.id}
-                plantName={care.name}
+                key={`${care.plantId}-${care.careType}`}
+                plantName={care.plantName}
                 careType={care.careType}
-                lastCareDate={care.lastCareDate}
+                lastCareDate={care.lastCareDate || ''}
                 daysOverdue={care.daysOverdue}
                 onLogCare={() => handleOpenModal(care)}
-                onClick={() => console.log('Go to plant detail:', care.id)}
+                onClick={() => navigate(`/plant/${care.plantId}`)}
               />
             ))
           ) : (
@@ -131,7 +217,7 @@ export const TodayPage: React.FC = () => {
         <section className="mb-8">
           <h2 className="font-display text-lg font-bold mb-4">📅 Next 7 Days</h2>
           <UpcomingCarePicker
-            daysWithCare={mockUpcomingCare}
+            daysWithCare={upcomingCare}
             onSelectDay={handleSelectDay}
           />
         </section>
@@ -201,7 +287,7 @@ export const TodayPage: React.FC = () => {
         <QuickLogCareModal
           isOpen={modalOpen}
           isLoading={logLoading}
-          plantName={selectedCare.name}
+          plantName={selectedCare.plantName}
           careType={selectedCare.careType}
           onClose={() => {
             setModalOpen(false);
