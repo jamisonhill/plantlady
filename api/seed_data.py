@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine, Base
 from models import User, Season, PlantVariety, PlantBatch, SeasonCost, EventType
 
-# Password hashing context (argon2 primary for compatibility)
-pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
+# Password hashing context (argon2 only, with bcrypt support for verification)
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 def hash_pin(pin: str) -> str:
