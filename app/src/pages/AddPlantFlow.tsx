@@ -1,9 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { client } from '../api/client';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -30,7 +30,7 @@ const locations = [
 
 export const AddPlantFlow: React.FC = () => {
   const navigate = useNavigate();
-  const auth = useContext(AuthContext);
+  const auth = useAuth();
   const [step, setStep] = useState<Step>(1);
   const [formData, setFormData] = useState<PlantFormData>({
     commonName: '',
@@ -58,7 +58,7 @@ export const AddPlantFlow: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!auth?.currentUser) {
+    if (!auth.currentUser) {
       setError('User not logged in');
       return;
     }
@@ -68,7 +68,7 @@ export const AddPlantFlow: React.FC = () => {
 
     try {
       // 1. Create plant
-      const plant = await client.createIndividualPlant(auth.currentUser.id, {
+      const plant = await client.createIndividualPlant(auth.currentUser!.id, {
         common_name: formData.commonName,
         scientific_name: formData.scientificName || undefined,
         location: formData.location,

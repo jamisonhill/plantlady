@@ -18,8 +18,8 @@ try:
 except Exception:
     pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-# Create tables on startup
-Base.metadata.create_all(bind=engine)
+# Schema managed by Alembic migrations
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="PlantLady API",

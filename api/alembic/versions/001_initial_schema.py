@@ -6,8 +6,6 @@ Create Date: 2026-02-24
 
 """
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '001'
@@ -17,171 +15,161 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create ENUM types
-    event_type_enum = postgresql.ENUM(
-        'SEEDED', 'GERMINATED', 'TRANSPLANTED', 'FIRST_FLOWER',
-        'MATURE', 'HARVESTED', 'GIVEN_AWAY', 'TRADED', 'DIED', 'OBSERVATION',
-        name='eventtype'
-    )
-    event_type_enum.create(op.get_bind(), checkfirst=True)
+    # Create ENUM type - check if it exists first
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'eventtype') THEN
+                CREATE TYPE eventtype AS ENUM (
+                    'SEEDED', 'GERMINATED', 'TRANSPLANTED', 'FIRST_FLOWER',
+                    'MATURE', 'HARVESTED', 'GIVEN_AWAY', 'TRADED', 'DIED', 'OBSERVATION'
+                );
+            END IF;
+        END $$;
+    """)
 
     # Create users table
-    op.create_table(
-        'users',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(50), nullable=False),
-        sa.Column('display_color', sa.String(7), nullable=True),
-        sa.Column('pin_hash', sa.String(255), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name')
-    )
+    op.execute("""
+        CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(50) UNIQUE NOT NULL,
+            display_color VARCHAR(7),
+            pin_hash VARCHAR(255) NOT NULL,
+            pin VARCHAR(4),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create seasons table
-    op.create_table(
-        'seasons',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('year', sa.Integer(), nullable=False),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('year')
-    )
+    op.execute("""
+        CREATE TABLE seasons (
+            id SERIAL PRIMARY KEY,
+            year INTEGER UNIQUE NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create plant_varieties table
-    op.create_table(
-        'plant_varieties',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('common_name', sa.String(100), nullable=False),
-        sa.Column('scientific_name', sa.String(150), nullable=True),
-        sa.Column('category', sa.String(50), nullable=False),
-        sa.Column('flowering_season', sa.String(50), nullable=True),
-        sa.Column('days_to_germinate', sa.Integer(), nullable=True),
-        sa.Column('days_to_mature', sa.Integer(), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.PrimaryKeyConstraint('id')
-    )
+    op.execute("""
+        CREATE TABLE plant_varieties (
+            id SERIAL PRIMARY KEY,
+            common_name VARCHAR(100) NOT NULL,
+            scientific_name VARCHAR(150),
+            category VARCHAR(50) NOT NULL,
+            flowering_season VARCHAR(50),
+            days_to_germinate INTEGER,
+            days_to_mature INTEGER,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create plant_batches table
-    op.create_table(
-        'plant_batches',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('variety_id', sa.Integer(), nullable=False),
-        sa.Column('season_id', sa.Integer(), nullable=False),
-        sa.Column('seeds_count', sa.Integer(), nullable=True),
-        sa.Column('packets', sa.Integer(), nullable=True),
-        sa.Column('source', sa.String(100), nullable=True),
-        sa.Column('location', sa.String(100), nullable=True),
-        sa.Column('start_date', sa.DateTime(), nullable=True),
-        sa.Column('transplant_date', sa.DateTime(), nullable=True),
-        sa.Column('repeat_next_year', sa.String(10), nullable=True),
-        sa.Column('outcome_notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.ForeignKeyConstraint(['variety_id'], ['plant_varieties.id']),
-        sa.ForeignKeyConstraint(['season_id'], ['seasons.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
+    op.execute("""
+        CREATE TABLE plant_batches (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            variety_id INTEGER NOT NULL REFERENCES plant_varieties(id),
+            season_id INTEGER NOT NULL REFERENCES seasons(id),
+            seeds_count INTEGER,
+            packets INTEGER,
+            source VARCHAR(100),
+            location VARCHAR(100),
+            start_date TIMESTAMP,
+            transplant_date TIMESTAMP,
+            repeat_next_year VARCHAR(10),
+            outcome_notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create events table
-    op.create_table(
-        'events',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('batch_id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('event_type', event_type_enum, nullable=False),
-        sa.Column('event_date', sa.DateTime(), nullable=False),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['batch_id'], ['plant_batches.id']),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
+    op.execute("""
+        CREATE TABLE events (
+            id SERIAL PRIMARY KEY,
+            batch_id INTEGER NOT NULL REFERENCES plant_batches(id),
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            event_type eventtype NOT NULL,
+            event_date TIMESTAMP NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create photos table
-    op.create_table(
-        'photos',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('batch_id', sa.Integer(), nullable=False),
-        sa.Column('event_id', sa.Integer(), nullable=True),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('filename', sa.String(255), nullable=False),
-        sa.Column('caption', sa.Text(), nullable=True),
-        sa.Column('taken_at', sa.DateTime(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['batch_id'], ['plant_batches.id']),
-        sa.ForeignKeyConstraint(['event_id'], ['events.id']),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('filename')
-    )
+    op.execute("""
+        CREATE TABLE photos (
+            id SERIAL PRIMARY KEY,
+            batch_id INTEGER NOT NULL REFERENCES plant_batches(id),
+            event_id INTEGER REFERENCES events(id),
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            filename VARCHAR(255) UNIQUE NOT NULL,
+            caption TEXT,
+            taken_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create distributions table
-    op.create_table(
-        'distributions',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('batch_id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('recipient', sa.String(100), nullable=False),
-        sa.Column('quantity', sa.Integer(), nullable=True),
-        sa.Column('type', sa.String(20), nullable=False),
-        sa.Column('date', sa.DateTime(), nullable=False),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['batch_id'], ['plant_batches.id']),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
+    op.execute("""
+        CREATE TABLE distributions (
+            id SERIAL PRIMARY KEY,
+            batch_id INTEGER NOT NULL REFERENCES plant_batches(id),
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            recipient VARCHAR(100) NOT NULL,
+            quantity INTEGER,
+            type VARCHAR(20) NOT NULL,
+            date TIMESTAMP NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Create season_costs table
-    op.create_table(
-        'season_costs',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('season_id', sa.Integer(), nullable=False),
-        sa.Column('item_name', sa.String(100), nullable=False),
-        sa.Column('cost', sa.Numeric(10, 2), nullable=False),
-        sa.Column('quantity', sa.Integer(), nullable=True),
-        sa.Column('category', sa.String(50), nullable=False),
-        sa.Column('is_one_time', sa.Boolean(), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.ForeignKeyConstraint(['season_id'], ['seasons.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
+    op.execute("""
+        CREATE TABLE season_costs (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            season_id INTEGER NOT NULL REFERENCES seasons(id),
+            item_name VARCHAR(100) NOT NULL,
+            cost NUMERIC(10, 2) NOT NULL,
+            quantity INTEGER,
+            category VARCHAR(50) NOT NULL,
+            is_one_time BOOLEAN DEFAULT TRUE,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
-    # Create indexes for common queries
-    op.create_index('ix_plant_batches_season_id', 'plant_batches', ['season_id'])
-    op.create_index('ix_plant_batches_variety_id', 'plant_batches', ['variety_id'])
-    op.create_index('ix_plant_batches_user_id', 'plant_batches', ['user_id'])
-    op.create_index('ix_events_batch_id', 'events', ['batch_id'])
-    op.create_index('ix_events_user_id', 'events', ['user_id'])
-    op.create_index('ix_photos_batch_id', 'photos', ['batch_id'])
-    op.create_index('ix_season_costs_season_id', 'season_costs', ['season_id'])
+    # Create indexes
+    op.execute("CREATE INDEX ix_plant_batches_season_id ON plant_batches(season_id)")
+    op.execute("CREATE INDEX ix_plant_batches_variety_id ON plant_batches(variety_id)")
+    op.execute("CREATE INDEX ix_plant_batches_user_id ON plant_batches(user_id)")
+    op.execute("CREATE INDEX ix_events_batch_id ON events(batch_id)")
+    op.execute("CREATE INDEX ix_events_user_id ON events(user_id)")
+    op.execute("CREATE INDEX ix_photos_batch_id ON photos(batch_id)")
+    op.execute("CREATE INDEX ix_season_costs_season_id ON season_costs(season_id)")
 
 
 def downgrade() -> None:
     # Drop indexes
-    op.drop_index('ix_season_costs_season_id', 'season_costs')
-    op.drop_index('ix_photos_batch_id', 'photos')
-    op.drop_index('ix_events_user_id', 'events')
-    op.drop_index('ix_events_batch_id', 'events')
-    op.drop_index('ix_plant_batches_user_id', 'plant_batches')
-    op.drop_index('ix_plant_batches_variety_id', 'plant_batches')
-    op.drop_index('ix_plant_batches_season_id', 'plant_batches')
+    op.execute("DROP INDEX IF EXISTS ix_season_costs_season_id")
+    op.execute("DROP INDEX IF EXISTS ix_photos_batch_id")
+    op.execute("DROP INDEX IF EXISTS ix_events_user_id")
+    op.execute("DROP INDEX IF EXISTS ix_events_batch_id")
+    op.execute("DROP INDEX IF EXISTS ix_plant_batches_user_id")
+    op.execute("DROP INDEX IF EXISTS ix_plant_batches_variety_id")
+    op.execute("DROP INDEX IF EXISTS ix_plant_batches_season_id")
 
     # Drop tables in reverse order
-    op.drop_table('season_costs')
-    op.drop_table('distributions')
-    op.drop_table('photos')
-    op.drop_table('events')
-    op.drop_table('plant_batches')
-    op.drop_table('plant_varieties')
-    op.drop_table('seasons')
-    op.drop_table('users')
+    op.execute("DROP TABLE IF EXISTS season_costs")
+    op.execute("DROP TABLE IF EXISTS distributions")
+    op.execute("DROP TABLE IF EXISTS photos")
+    op.execute("DROP TABLE IF EXISTS events")
+    op.execute("DROP TABLE IF EXISTS plant_batches")
+    op.execute("DROP TABLE IF EXISTS plant_varieties")
+    op.execute("DROP TABLE IF EXISTS seasons")
+    op.execute("DROP TABLE IF EXISTS users")
 
     # Drop enum type
-    op.execute('DROP TYPE IF EXISTS eventtype')
+    op.execute("DROP TYPE IF EXISTS eventtype")

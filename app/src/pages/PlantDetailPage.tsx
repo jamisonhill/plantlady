@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PlantHeroSection } from '../components/PlantHeroSection';
 import { PlantCareStatusCard } from '../components/PlantCareStatusCard';
 import { PlantDetailTabs } from '../components/PlantDetailTabs';
 import { QuickLogCareModal } from '../components/QuickLogCareModal';
 import { client } from '../api/client';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { IndividualPlant, CareSchedule, CareEvent } from '../types';
 
 interface CareItem {
@@ -63,11 +63,10 @@ function convertToCareLog(events: CareEvent[]): CareLogEntry[] {
 export const PlantDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const plantId = parseInt(id || '1', 10);
-  const auth = useContext(AuthContext);
+  const auth = useAuth();
 
   const [plant, setPlant] = useState<IndividualPlant | null>(null);
   const [schedules, setSchedules] = useState<CareSchedule[]>([]);
-  const [events, setEvents] = useState<CareEvent[]>([]);
   const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [careLog, setCareLog] = useState<CareLogEntry[]>([]);
 
@@ -78,7 +77,7 @@ export const PlantDetailPage: React.FC = () => {
 
   useEffect(() => {
     async function loadPlantData() {
-      if (!auth?.currentUser) return;
+      if (!auth.currentUser) return;
 
       try {
         const [plantData, schedulesData, eventsData] = await Promise.all([
@@ -89,7 +88,6 @@ export const PlantDetailPage: React.FC = () => {
 
         setPlant(plantData);
         setSchedules(schedulesData);
-        setEvents(eventsData);
         setCareItems(calculateCareItems(schedulesData, eventsData));
         setCareLog(convertToCareLog(eventsData));
       } catch (err) {
@@ -108,12 +106,12 @@ export const PlantDetailPage: React.FC = () => {
   };
 
   const handleSubmitCare = async (notes?: string) => {
-    if (!selectedCareType || !auth?.currentUser) return;
+    if (!selectedCareType || !auth.currentUser) return;
 
     setLogLoading(true);
     try {
       // Log the care event
-      await client.logCareEvent(auth.currentUser.id, plantId, {
+      await client.logCareEvent(auth.currentUser!.id, plantId, {
         care_type: selectedCareType,
         event_date: new Date().toISOString(),
         notes,
@@ -121,7 +119,6 @@ export const PlantDetailPage: React.FC = () => {
 
       // Re-fetch events to update display
       const updatedEvents = await client.getPlantCareEvents(plantId);
-      setEvents(updatedEvents);
       setCareLog(convertToCareLog(updatedEvents));
       setCareItems(calculateCareItems(schedules, updatedEvents));
 

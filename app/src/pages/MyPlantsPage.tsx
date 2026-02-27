@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlantGridCard } from '../components/PlantGridCard';
 import { Button } from '../components/Button';
 import { client } from '../api/client';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { IndividualPlant, CareSchedule, CareEvent } from '../types';
 
 interface PlantDisplay {
@@ -26,9 +26,9 @@ function calculateCareUrgency(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  let mostUrgent = {
+  let mostUrgent: { daysUntilDue: number; urgency: 'overdue' | 'today' | 'soon' | 'healthy'; label: string } = {
     daysUntilDue: Infinity,
-    urgency: 'healthy' as const,
+    urgency: 'healthy',
     label: 'Healthy',
   };
 
@@ -76,16 +76,16 @@ function calculateCareUrgency(
 
 export const MyPlantsPage: React.FC = () => {
   const navigate = useNavigate();
-  const auth = useContext(AuthContext);
+  const auth = useAuth();
   const [plants, setPlants] = useState<PlantDisplay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadPlants() {
-      if (!auth?.currentUser) return;
+      if (!auth.currentUser) return;
 
       try {
-        const userPlants = await client.getPlants(auth.currentUser.id);
+        const userPlants = await client.getPlants(auth.currentUser!.id);
 
         // For each plant, fetch schedules and events to calculate urgency
         const displayPlants = await Promise.all(
