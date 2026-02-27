@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from database import engine, Base, SessionLocal, get_db
 from models import User, PlantBatch, Event
 from schemas import PINLogin, AuthResponse, UserStatsResponse
-from routers import plants, events, seasons, costs, distributions, photos
+from routers import plants, events, seasons, costs, distributions, photos, individual_plants
 
 # Password context for hashing (bcrypt primary, argon2 fallback)
 try:
@@ -48,6 +48,7 @@ app.include_router(seasons.router)
 app.include_router(costs.router)
 app.include_router(distributions.router)
 app.include_router(photos.router)
+app.include_router(individual_plants.router)
 
 
 # ============================================================================

@@ -110,5 +110,46 @@ export const client = {
       body: JSON.stringify(data)
     })
     return handleResponse<CareEvent>(response)
+  },
+
+  async getPlantDetail(plantId: number): Promise<IndividualPlant> {
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}`)
+    return handleResponse<IndividualPlant>(response)
+  },
+
+  async createIndividualPlant(userId: number, data: {
+    common_name: string
+    scientific_name?: string
+    location?: string
+    notes?: string
+  }): Promise<IndividualPlant> {
+    const response = await fetch(`${API_BASE}/individual-plants?user_id=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return handleResponse<IndividualPlant>(response)
+  },
+
+  async createCareSchedule(plantId: number, userId: number, data: {
+    care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
+    frequency_days: number
+  }): Promise<CareSchedule> {
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-schedule?user_id=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return handleResponse<CareSchedule>(response)
+  },
+
+  async uploadCareEventPhoto(plantId: number, eventId: number, userId: number, file: File): Promise<CareEvent> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-events/${eventId}/photo?user_id=${userId}`, {
+      method: 'POST',
+      body: form
+    })
+    return handleResponse<CareEvent>(response)
   }
 }

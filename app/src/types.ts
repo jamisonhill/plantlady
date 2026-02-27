@@ -77,9 +77,12 @@ export interface CareSchedule {
 export interface CareEvent {
   id: number
   plant_id: number
+  user_id: number
   care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
   event_date: string
   notes?: string
+  photo_filename?: string
+  created_at: string
 }
 
 export interface PlantHealth {

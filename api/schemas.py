@@ -259,3 +259,61 @@ class PlantStats(BaseModel):
     days_to_flower: Optional[int] = None
     days_to_mature: Optional[int] = None
     photo_count: int
+
+
+# ============================================================================
+# Individual Plants (My Plants)
+# ============================================================================
+
+class IndividualPlantCreate(BaseModel):
+    """Create individual plant request."""
+    common_name: str
+    scientific_name: Optional[str] = None
+    location: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class IndividualPlantResponse(IndividualPlantCreate):
+    """Individual plant response."""
+    id: int
+    user_id: int
+    photo_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CareScheduleCreate(BaseModel):
+    """Create care schedule request."""
+    care_type: str  # WATERING, FERTILIZING, REPOTTING
+    frequency_days: int
+
+
+class CareScheduleResponse(CareScheduleCreate):
+    """Care schedule response."""
+    id: int
+    plant_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CareEventCreate(BaseModel):
+    """Create care event request."""
+    care_type: str
+    event_date: datetime
+    notes: Optional[str] = None
+
+
+class CareEventResponse(CareEventCreate):
+    """Care event response."""
+    id: int
+    plant_id: int
+    user_id: int
+    photo_filename: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

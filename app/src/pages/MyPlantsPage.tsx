@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlantGridCard } from '../components/PlantGridCard';
 import { Button } from '../components/Button';
+import { client } from '../api/client';
+import { AuthContext } from '../contexts/AuthContext';
+import { IndividualPlant, CareSchedule, CareEvent } from '../types';
 
-interface MockPlant {
+interface PlantDisplay {
   id: number;
   name: string;
   photoUrl?: string;
@@ -11,36 +14,109 @@ interface MockPlant {
   careLabel: string;
 }
 
-const mockPlants: MockPlant[] = [
-  {
-    id: 1,
-    name: 'Monstera Deliciosa',
-    careUrgency: 'overdue',
-    careLabel: 'Overdue 2 days',
-  },
-  {
-    id: 2,
-    name: "Pothos 'Golden'",
-    careUrgency: 'today',
-    careLabel: 'Due today',
-  },
-  {
-    id: 3,
-    name: 'Snake Plant',
-    careUrgency: 'soon',
-    careLabel: 'Due in 3d',
-  },
-  {
-    id: 4,
-    name: 'Philodendron',
-    careUrgency: 'healthy',
-    careLabel: 'Healthy',
-  },
-];
+// Calculate care urgency based on last event and schedule
+function calculateCareUrgency(
+  schedules: CareSchedule[],
+  events: CareEvent[]
+): { urgency: 'overdue' | 'today' | 'soon' | 'healthy'; label: string } {
+  if (!schedules.length) {
+    return { urgency: 'healthy', label: 'Healthy' };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let mostUrgent = {
+    daysUntilDue: Infinity,
+    urgency: 'healthy' as const,
+    label: 'Healthy',
+  };
+
+  for (const schedule of schedules) {
+    // Find last event of this care type
+    const lastEvent = events.find((e) => e.care_type === schedule.care_type);
+    let daysUntilDue: number;
+
+    if (!lastEvent) {
+      // Never done - assume overdue
+      daysUntilDue = -1;
+    } else {
+      const eventDate = new Date(lastEvent.event_date);
+      eventDate.setHours(0, 0, 0, 0);
+      const daysSinceLast = Math.floor(
+        (today.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      daysUntilDue = schedule.frequency_days - daysSinceLast;
+    }
+
+    if (daysUntilDue < mostUrgent.daysUntilDue) {
+      let urgency: 'overdue' | 'today' | 'soon' | 'healthy';
+      let label: string;
+
+      if (daysUntilDue < 0) {
+        urgency = 'overdue';
+        label = `Overdue ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''}`;
+      } else if (daysUntilDue === 0) {
+        urgency = 'today';
+        label = 'Due today';
+      } else if (daysUntilDue <= 3) {
+        urgency = 'soon';
+        label = `Due in ${daysUntilDue}d`;
+      } else {
+        urgency = 'healthy';
+        label = 'Healthy';
+      }
+
+      mostUrgent = { daysUntilDue, urgency, label };
+    }
+  }
+
+  return { urgency: mostUrgent.urgency, label: mostUrgent.label };
+}
 
 export const MyPlantsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [plants] = useState<MockPlant[]>(mockPlants);
+  const auth = useContext(AuthContext);
+  const [plants, setPlants] = useState<PlantDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPlants() {
+      if (!auth?.currentUser) return;
+
+      try {
+        const userPlants = await client.getPlants(auth.currentUser.id);
+
+        // For each plant, fetch schedules and events to calculate urgency
+        const displayPlants = await Promise.all(
+          userPlants.map(async (plant: IndividualPlant) => {
+            const [schedules, events] = await Promise.all([
+              client.getPlantCareSchedule(plant.id),
+              client.getPlantCareEvents(plant.id),
+            ]);
+
+            const { urgency, label } = calculateCareUrgency(schedules, events);
+
+            return {
+              id: plant.id,
+              name: plant.common_name,
+              photoUrl: plant.photo_url,
+              careUrgency: urgency,
+              careLabel: label,
+            };
+          })
+        );
+
+        setPlants(displayPlants);
+      } catch (err) {
+        console.error('Failed to load plants:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPlants();
+  }, [auth?.currentUser]);
 
   const handlePlantClick = (id: number) => {
     navigate(`/plant/${id}`);
@@ -49,6 +125,14 @@ export const MyPlantsPage: React.FC = () => {
   const handleAddPlant = () => {
     navigate('/add-plant-flow');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-[83px] flex flex-col items-center justify-center p-4">
+        <p className="text-[var(--color-text-2)]">Loading plants...</p>
+      </div>
+    );
+  }
 
   if (plants.length === 0) {
     return (

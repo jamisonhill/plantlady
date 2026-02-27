@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { client } from '../api/client';
+import { AuthContext } from '../contexts/AuthContext';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -28,6 +30,7 @@ const locations = [
 
 export const AddPlantFlow: React.FC = () => {
   const navigate = useNavigate();
+  const auth = useContext(AuthContext);
   const [step, setStep] = useState<Step>(1);
   const [formData, setFormData] = useState<PlantFormData>({
     commonName: '',
@@ -37,6 +40,8 @@ export const AddPlantFlow: React.FC = () => {
     fertilizingFrequency: 4,
     repottingReminder: true,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleNext = () => {
     if (step < 4) {
@@ -52,9 +57,49 @@ export const AddPlantFlow: React.FC = () => {
     }
   };
 
-  const handleSubmit = () => {
-    console.log('Adding plant:', formData);
-    navigate('/collection');
+  const handleSubmit = async () => {
+    if (!auth?.currentUser) {
+      setError('User not logged in');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // 1. Create plant
+      const plant = await client.createIndividualPlant(auth.currentUser.id, {
+        common_name: formData.commonName,
+        scientific_name: formData.scientificName || undefined,
+        location: formData.location,
+      });
+
+      // 2. Create care schedules
+      await client.createCareSchedule(plant.id, auth.currentUser.id, {
+        care_type: 'WATERING',
+        frequency_days: formData.wateringFrequency,
+      });
+
+      await client.createCareSchedule(plant.id, auth.currentUser.id, {
+        care_type: 'FERTILIZING',
+        frequency_days: formData.fertilizingFrequency * 7, // weeks → days
+      });
+
+      if (formData.repottingReminder) {
+        await client.createCareSchedule(plant.id, auth.currentUser.id, {
+          care_type: 'REPOTTING',
+          frequency_days: 365,
+        });
+      }
+
+      // Navigate to plant detail to confirm
+      navigate('/collection');
+    } catch (err) {
+      console.error('Failed to add plant:', err);
+      setError('Failed to add plant. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (field: keyof PlantFormData, value: any) => {
@@ -86,6 +131,13 @@ export const AddPlantFlow: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-800 text-sm">
+            {error}
+          </div>
+        )}
 
         {/* Step 1: Name & Location */}
         {step === 1 && (
@@ -210,10 +262,10 @@ export const AddPlantFlow: React.FC = () => {
             </Card>
 
             <div className="flex gap-2">
-              <Button variant="secondary" fullWidth>
+              <Button variant="secondary" fullWidth disabled>
                 📷 Take Photo
               </Button>
-              <Button variant="ghost" fullWidth>
+              <Button variant="ghost" fullWidth disabled>
                 📁 From Library
               </Button>
             </div>
@@ -281,7 +333,7 @@ export const AddPlantFlow: React.FC = () => {
 
         {/* Navigation Buttons */}
         <div className="flex gap-2 mt-8">
-          <Button variant="ghost" fullWidth onClick={handleBack}>
+          <Button variant="ghost" fullWidth onClick={handleBack} disabled={isSubmitting}>
             ← Back
           </Button>
           {step < 4 ? (
@@ -292,14 +344,20 @@ export const AddPlantFlow: React.FC = () => {
               disabled={
                 (step === 1 && !isStep1Valid) ||
                 (step === 2 && !isStep2Valid) ||
-                (step === 3 && !isStep3Valid)
+                (step === 3 && !isStep3Valid) ||
+                isSubmitting
               }
             >
               Next →
             </Button>
           ) : (
-            <Button variant="primary" fullWidth onClick={handleSubmit}>
-              ✓ Add Plant
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Adding...' : '✓ Add Plant'}
             </Button>
           )}
         </div>

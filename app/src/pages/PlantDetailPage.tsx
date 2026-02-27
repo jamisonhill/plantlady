@@ -1,38 +1,106 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { PlantHeroSection } from '../components/PlantHeroSection';
 import { PlantCareStatusCard } from '../components/PlantCareStatusCard';
 import { PlantDetailTabs } from '../components/PlantDetailTabs';
 import { QuickLogCareModal } from '../components/QuickLogCareModal';
+import { client } from '../api/client';
+import { AuthContext } from '../contexts/AuthContext';
+import { IndividualPlant, CareSchedule, CareEvent } from '../types';
 
-const mockPlantDetails = {
-  1: {
-    name: 'Monstera Deliciosa',
-    location: 'Living Room',
-    dateAdded: 'Jan 2025',
-    careStatus: [
-      { type: 'WATERING' as const, daysUntilDue: -2, isDue: true },
-      { type: 'FERTILIZING' as const, daysUntilDue: 12, isDue: false },
-      { type: 'REPOTTING' as const, daysUntilDue: 45, isDue: false },
-    ],
-    careLog: [
-      { date: '2026-02-18', type: 'WATERING' as const, notes: 'Leaves look healthy' },
-      { date: '2026-02-10', type: 'WATERING' as const, notes: 'Watered thoroughly' },
-      { date: '2026-02-01', type: 'FERTILIZING' as const },
-    ],
-    growthPhotos: [],
-    healthEntries: [],
-  },
-};
+interface CareItem {
+  type: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
+  daysUntilDue: number;
+  isDue: boolean;
+}
+
+interface CareLogEntry {
+  date: string;
+  type: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
+  notes?: string;
+}
+
+// Calculate care items from schedules and events
+function calculateCareItems(
+  schedules: CareSchedule[],
+  events: CareEvent[]
+): CareItem[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return schedules.map((schedule) => {
+    const lastEvent = events.find((e) => e.care_type === schedule.care_type);
+    let daysUntilDue: number;
+
+    if (!lastEvent) {
+      daysUntilDue = -1;
+    } else {
+      const eventDate = new Date(lastEvent.event_date);
+      eventDate.setHours(0, 0, 0, 0);
+      const daysSinceLast = Math.floor(
+        (today.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      daysUntilDue = schedule.frequency_days - daysSinceLast;
+    }
+
+    return {
+      type: schedule.care_type as 'WATERING' | 'FERTILIZING' | 'REPOTTING',
+      daysUntilDue,
+      isDue: daysUntilDue <= 0,
+    };
+  });
+}
+
+// Convert events to care log format
+function convertToCareLog(events: CareEvent[]): CareLogEntry[] {
+  return events.map((event) => ({
+    date: new Date(event.event_date).toISOString().split('T')[0],
+    type: event.care_type as 'WATERING' | 'FERTILIZING' | 'REPOTTING',
+    notes: event.notes,
+  }));
+}
 
 export const PlantDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const plantId = parseInt(id || '1', 10);
-  const plant = mockPlantDetails[plantId as keyof typeof mockPlantDetails] || mockPlantDetails[1];
+  const auth = useContext(AuthContext);
+
+  const [plant, setPlant] = useState<IndividualPlant | null>(null);
+  const [schedules, setSchedules] = useState<CareSchedule[]>([]);
+  const [events, setEvents] = useState<CareEvent[]>([]);
+  const [careItems, setCareItems] = useState<CareItem[]>([]);
+  const [careLog, setCareLog] = useState<CareLogEntry[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCareType, setSelectedCareType] = useState<'WATERING' | 'FERTILIZING' | 'REPOTTING' | null>(null);
   const [logLoading, setLogLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPlantData() {
+      if (!auth?.currentUser) return;
+
+      try {
+        const [plantData, schedulesData, eventsData] = await Promise.all([
+          client.getPlantDetail(plantId),
+          client.getPlantCareSchedule(plantId),
+          client.getPlantCareEvents(plantId),
+        ]);
+
+        setPlant(plantData);
+        setSchedules(schedulesData);
+        setEvents(eventsData);
+        setCareItems(calculateCareItems(schedulesData, eventsData));
+        setCareLog(convertToCareLog(eventsData));
+      } catch (err) {
+        console.error('Failed to load plant data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPlantData();
+  }, [plantId, auth?.currentUser]);
 
   const handleLogCare = (careType: 'WATERING' | 'FERTILIZING' | 'REPOTTING') => {
     setSelectedCareType(careType);
@@ -40,39 +108,76 @@ export const PlantDetailPage: React.FC = () => {
   };
 
   const handleSubmitCare = async (notes?: string) => {
+    if (!selectedCareType || !auth?.currentUser) return;
+
     setLogLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log('Logged care:', selectedCareType, notes);
+      // Log the care event
+      await client.logCareEvent(auth.currentUser.id, plantId, {
+        care_type: selectedCareType,
+        event_date: new Date().toISOString(),
+        notes,
+      });
+
+      // Re-fetch events to update display
+      const updatedEvents = await client.getPlantCareEvents(plantId);
+      setEvents(updatedEvents);
+      setCareLog(convertToCareLog(updatedEvents));
+      setCareItems(calculateCareItems(schedules, updatedEvents));
+
       setModalOpen(false);
       setSelectedCareType(null);
+    } catch (err) {
+      console.error('Failed to log care event:', err);
     } finally {
       setLogLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-[100px] flex items-center justify-center">
+        <p className="text-[var(--color-text-2)]">Loading plant...</p>
+      </div>
+    );
+  }
+
+  if (!plant) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-[100px] flex items-center justify-center">
+        <p className="text-[var(--color-text-2)]">Plant not found</p>
+      </div>
+    );
+  }
+
+  // Format date added
+  const dateAdded = new Date(plant.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-[100px]">
       <div className="max-w-lg mx-auto">
         {/* Hero Section */}
         <PlantHeroSection
-          plantName={plant.name}
-          location={plant.location}
-          dateAdded={plant.dateAdded}
+          plantName={plant.common_name}
+          location={plant.location || 'Unknown'}
+          dateAdded={dateAdded}
         />
 
         <div className="px-4">
           {/* Care Status Card */}
           <PlantCareStatusCard
-            careItems={plant.careStatus}
+            careItems={careItems}
             onLogCare={handleLogCare}
           />
 
           {/* Detail Tabs */}
           <PlantDetailTabs
-            careLog={plant.careLog}
-            growthPhotos={plant.growthPhotos}
-            healthEntries={plant.healthEntries}
+            careLog={careLog}
+            growthPhotos={[]}
+            healthEntries={[]}
             onAddPhoto={() => console.log('Add photo')}
             onLogHealth={() => console.log('Log health issue')}
           />
@@ -84,7 +189,7 @@ export const PlantDetailPage: React.FC = () => {
         <QuickLogCareModal
           isOpen={modalOpen}
           isLoading={logLoading}
-          plantName={plant.name}
+          plantName={plant.common_name}
           careType={selectedCareType}
           onClose={() => {
             setModalOpen(false);

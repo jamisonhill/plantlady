@@ -25,6 +25,8 @@ class User(Base):
     photos = relationship("Photo", back_populates="user")
     distributions = relationship("Distribution", back_populates="user")
     season_costs = relationship("SeasonCost", back_populates="user")
+    individual_plants = relationship("IndividualPlant", back_populates="user")
+    care_events = relationship("CareEvent", back_populates="user")
 
 
 class Season(Base):
@@ -179,3 +181,54 @@ class SeasonCost(Base):
     # Relationships
     user = relationship("User", back_populates="season_costs")
     season = relationship("Season", back_populates="season_costs")
+
+
+class IndividualPlant(Base):
+    """Individual houseplant (my plants collection)."""
+    __tablename__ = "individual_plants"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    common_name = Column(String(100), nullable=False)
+    scientific_name = Column(String(150), nullable=True)
+    location = Column(String(100), nullable=True)
+    photo_url = Column(String(500), nullable=True)  # stored filename
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    care_schedules = relationship("CareSchedule", back_populates="plant", cascade="all, delete-orphan")
+    care_events = relationship("CareEvent", back_populates="plant", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="individual_plants")
+
+
+class CareSchedule(Base):
+    """Care schedule for a plant (watering, fertilizing, etc)."""
+    __tablename__ = "care_schedules"
+
+    id = Column(Integer, primary_key=True)
+    plant_id = Column(Integer, ForeignKey("individual_plants.id"), nullable=False)
+    care_type = Column(String(20), nullable=False)  # WATERING, FERTILIZING, REPOTTING
+    frequency_days = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    plant = relationship("IndividualPlant", back_populates="care_schedules")
+
+
+class CareEvent(Base):
+    """Care event log (when a plant was watered, fertilized, etc)."""
+    __tablename__ = "care_events"
+
+    id = Column(Integer, primary_key=True)
+    plant_id = Column(Integer, ForeignKey("individual_plants.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    care_type = Column(String(20), nullable=False)
+    event_date = Column(DateTime, nullable=False)
+    notes = Column(Text, nullable=True)
+    photo_filename = Column(String(255), nullable=True)  # optional photo
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    plant = relationship("IndividualPlant", back_populates="care_events")
+    user = relationship("User", back_populates="care_events")
