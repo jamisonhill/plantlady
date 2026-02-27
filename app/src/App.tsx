@@ -6,7 +6,6 @@ import LogEventPage from './pages/LogEventPage'
 import AddPlantPage from './pages/AddPlantPage'
 import { DesignSystemPage } from './pages/DesignSystemPage'
 import { TodayPage } from './pages/TodayPage'
-import { CollectionPage } from './pages/CollectionPage'
 import { DiscoverPage } from './pages/DiscoverPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { MyPlantsPage } from './pages/MyPlantsPage'
@@ -49,7 +48,7 @@ function App() {
           element={
             <ProtectedRoute>
               <AppLayout>
-                <CollectionPage />
+                <MyPlantsPage />
               </AppLayout>
             </ProtectedRoute>
           }
