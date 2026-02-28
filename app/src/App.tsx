@@ -8,10 +8,9 @@ import { DesignSystemPage } from './pages/DesignSystemPage'
 import { TodayPage } from './pages/TodayPage'
 import { DiscoverPage } from './pages/DiscoverPage'
 import { ProfilePage } from './pages/ProfilePage'
-import { MyPlantsPage } from './pages/MyPlantsPage'
+import { CollectionPage } from './pages/CollectionPage'
 import { PlantDetailPage } from './pages/PlantDetailPage'
 import { AddPlantFlow } from './pages/AddPlantFlow'
-import { MyGardenPage } from './pages/MyGardenPage'
 import { BatchDetailPage } from './pages/BatchDetailPage'
 import { AddBatchFlow } from './pages/AddBatchFlow'
 import { PlantInfoPage } from './pages/PlantInfoPage'
@@ -49,7 +48,7 @@ function App() {
           element={
             <ProtectedRoute>
               <AppLayout>
-                <MyPlantsPage />
+                <CollectionPage />
               </AppLayout>
             </ProtectedRoute>
           }
@@ -93,17 +92,7 @@ function App() {
           }
         />
 
-        {/* My Garden Routes */}
-        <Route
-          path="/my-garden"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <MyGardenPage />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Batch Detail Route */}
         <Route
           path="/batch/:id"
           element={
