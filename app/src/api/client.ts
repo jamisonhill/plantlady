@@ -86,7 +86,7 @@ export const client = {
     event_date: string
     notes?: string
   }): Promise<Event> {
-    const response = await fetch(`${API_BASE}/events?user_id=${userId}`, {
+    const response = await fetch(`${API_BASE}/events/?user_id=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
