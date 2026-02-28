@@ -13,6 +13,7 @@ import { PlantDetailPage } from './pages/PlantDetailPage'
 import { AddPlantFlow } from './pages/AddPlantFlow'
 import { MyGardenPage } from './pages/MyGardenPage'
 import { BatchDetailPage } from './pages/BatchDetailPage'
+import { AddBatchFlow } from './pages/AddBatchFlow'
 import { PlantInfoPage } from './pages/PlantInfoPage'
 import { PlantIdentifyResultPage } from './pages/PlantIdentifyResultPage'
 import { FriendsPage } from './pages/FriendsPage'
@@ -108,6 +109,14 @@ function App() {
           element={
             <ProtectedRoute>
               <BatchDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-batch"
+          element={
+            <ProtectedRoute>
+              <AddBatchFlow />
             </ProtectedRoute>
           }
         />

@@ -38,16 +38,38 @@ export const client = {
     return handleResponse<Variety[]>(response)
   },
 
+  async createVariety(data: {
+    common_name: string
+    scientific_name: string
+    category: string
+  }): Promise<Variety> {
+    const response = await fetch(`${API_BASE}/plants/varieties`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return handleResponse<Variety>(response)
+  },
+
   // Batches
   async getBatches(seasonId: number): Promise<Batch[]> {
     const response = await fetch(`${API_BASE}/plants/batches?season_id=${seasonId}`)
     return handleResponse<Batch[]>(response)
   },
 
+  async getBatchById(batchId: number): Promise<Batch> {
+    const response = await fetch(`${API_BASE}/plants/batches/${batchId}`)
+    return handleResponse<Batch>(response)
+  },
+
   async createBatch(userId: number, data: {
     variety_id: number
     season_id: number
     seeded_date?: string
+    seeds_count?: number
+    location?: string
+    source?: string
+    outcome_notes?: string
   }): Promise<Batch> {
     const response = await fetch(`${API_BASE}/plants/batches?user_id=${userId}`, {
       method: 'POST',
@@ -70,6 +92,11 @@ export const client = {
       body: JSON.stringify(data)
     })
     return handleResponse<Event>(response)
+  },
+
+  async getEventsForBatch(batchId: number): Promise<Event[]> {
+    const response = await fetch(`${API_BASE}/events/batch/${batchId}/timeline`)
+    return handleResponse<Event[]>(response)
   },
 
   // Photos

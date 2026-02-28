@@ -71,7 +71,7 @@ export default function LogEventPage() {
             <h1 className="text-2xl font-bold text-center text-sage-900 mb-8">What happened?</h1>
             <EventTypeGrid onSelect={handleSelectEventType} />
             <button
-              onClick={() => navigate('/home')}
+              onClick={() => navigate(`/batch/${batchId}`)}
               className="w-full mt-6 bg-sage-100 text-sage-800 rounded-xl px-6 py-3 font-semibold active:bg-sage-200"
             >
               Cancel
@@ -153,10 +153,10 @@ export default function LogEventPage() {
                 Log another
               </button>
               <button
-                onClick={() => navigate('/home')}
+                onClick={() => navigate(`/batch/${batchId}`)}
                 className="w-full bg-sage-100 text-sage-800 rounded-xl px-6 py-3 font-semibold active:bg-sage-200"
               >
-                Go home
+                Back to batch
               </button>
             </div>
           </div>

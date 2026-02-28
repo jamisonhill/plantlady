@@ -30,12 +30,32 @@ export interface Variety {
   category: string
 }
 
+export interface PlantVariety {
+  id: number
+  common_name: string
+  scientific_name: string
+  category: string
+  days_to_germinate?: number
+  days_to_mature?: number
+  notes?: string
+  created_at: string
+}
+
 export interface Batch {
   id: number
+  user_id: number
   variety_id: number
   season_id: number
-  seeded_date?: string
   variety_name?: string
+  seeds_count?: number
+  packets?: number
+  source?: string
+  location?: string
+  start_date?: string
+  transplant_date?: string
+  repeat_next_year?: string
+  outcome_notes?: string
+  created_at: string
 }
 
 export interface Event {

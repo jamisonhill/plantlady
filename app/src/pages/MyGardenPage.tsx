@@ -3,68 +3,120 @@ import { useNavigate } from 'react-router-dom';
 import { BatchCard } from '../components/BatchCard';
 import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
-import { Season } from '../types';
+import { Season, Event } from '../types';
+import { client } from '../api/client';
 
-interface MockBatch {
+interface BatchDisplay {
   id: number;
   variety_name: string;
-  seeded_date: string;
+  start_date: string;
   stage: string;
   stageEmoji: string;
-  seedCount?: number;
+  seeds_count?: number;
 }
 
-const mockBatches: MockBatch[] = [
-  {
-    id: 1,
-    variety_name: 'Black Krim Tomatoes',
-    seeded_date: '2026-02-14',
-    stage: 'Germinated',
-    stageEmoji: '🌿',
-    seedCount: 12,
-  },
-  {
-    id: 2,
-    variety_name: 'Pickling Cucumbers',
-    seeded_date: '2026-02-10',
-    stage: 'Sprouted',
-    stageEmoji: '🌱',
-    seedCount: 20,
-  },
-];
+const stageMap: Record<string, { name: string; emoji: string }> = {
+  SEEDED: { name: 'Seeded', emoji: '🌱' },
+  GERMINATED: { name: 'Germinated', emoji: '🌿' },
+  TRANSPLANTED: { name: 'Transplanted', emoji: '↪️' },
+  FIRST_FLOWER: { name: 'Flowering', emoji: '🌸' },
+  MATURE: { name: 'Mature', emoji: '🌾' },
+  HARVESTED: { name: 'Harvested', emoji: '🥬' },
+  DIED: { name: 'Died', emoji: '💔' },
+};
+
+const getStageFromLatestEvent = (events: Event[]): { name: string; emoji: string } => {
+  if (events.length === 0) {
+    return { name: 'Planned', emoji: '📋' };
+  }
+  const latestEvent = events[events.length - 1];
+  return stageMap[latestEvent.event_type] || { name: 'Unknown', emoji: '🌱' };
+};
 
 export const MyGardenPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentSeason } = useAuth();
-  const [batches, setBatches] = useState<MockBatch[]>(mockBatches);
+  const { currentSeason, currentUser } = useAuth();
+  const [batches, setBatches] = useState<BatchDisplay[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(currentSeason);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        // In real app, would fetch from API:
-        // const seasonsData = await client.getSeasons();
-        // const batchesData = await client.getBatches(seasonId);
+        setError('');
 
-        // For now, use mock data
-        setSeasons([
-          { id: 1, year: 2026, name: '2026 Season' },
-          { id: 2, year: 2025, name: '2025 Season' },
-        ]);
-        setSelectedSeason(currentSeason || { id: 1, year: 2026, name: '2026 Season' });
-        setBatches(mockBatches);
+        // Load seasons
+        const seasonsData = await client.getSeasons();
+        setSeasons(seasonsData);
+
+        // Set selected season to currentSeason or first season
+        const selected = currentSeason || seasonsData[0];
+        setSelectedSeason(selected);
+
+        // Load batches for the season
+        const batchesData = await client.getBatches(selected.id);
+
+        // For each batch, fetch its events and compute stage
+        const batchesWithStage = await Promise.all(
+          batchesData.map(async (batch) => {
+            const events = await client.getEventsForBatch(batch.id);
+            const stage = getStageFromLatestEvent(events);
+            return {
+              id: batch.id,
+              variety_name: batch.variety_name || '',
+              start_date: batch.start_date || batch.created_at || new Date().toISOString(),
+              stage: stage.name,
+              stageEmoji: stage.emoji,
+              seeds_count: batch.seeds_count,
+            };
+          })
+        );
+
+        setBatches(batchesWithStage);
       } catch (err) {
         console.error('Error loading garden data:', err);
+        setError('Failed to load garden data');
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [currentSeason?.id]);
+  }, [currentSeason?.id, currentUser?.id]);
+
+  const handleSeasonChange = async (season: Season) => {
+    setSelectedSeason(season);
+    try {
+      setLoading(true);
+      setError('');
+
+      const batchesData = await client.getBatches(season.id);
+      const batchesWithStage = await Promise.all(
+        batchesData.map(async (batch) => {
+          const events = await client.getEventsForBatch(batch.id);
+          const stage = getStageFromLatestEvent(events);
+          return {
+            id: batch.id,
+            variety_name: batch.variety_name || '',
+            start_date: batch.start_date || batch.created_at || new Date().toISOString(),
+            stage: stage.name,
+            stageEmoji: stage.emoji,
+            seeds_count: batch.seeds_count,
+          };
+        })
+      );
+
+      setBatches(batchesWithStage);
+    } catch (err) {
+      console.error('Error loading batches for season:', err);
+      setError('Failed to load batches');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleBatchClick = (batchId: number) => {
     navigate(`/batch/${batchId}`);
@@ -99,7 +151,7 @@ export const MyGardenPage: React.FC = () => {
               {seasons.map((season) => (
                 <button
                   key={season.id}
-                  onClick={() => setSelectedSeason(season)}
+                  onClick={() => handleSeasonChange(season)}
                   className={`px-4 py-2 rounded-full font-body text-sm font-medium transition-all whitespace-nowrap ${
                     selectedSeason?.id === season.id
                       ? 'bg-brand-terracotta text-white'
@@ -109,6 +161,13 @@ export const MyGardenPage: React.FC = () => {
                   {season.name}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-700 text-sm">
+              {error}
             </div>
           )}
         </div>
@@ -122,10 +181,10 @@ export const MyGardenPage: React.FC = () => {
                   key={batch.id}
                   id={batch.id}
                   variety={batch.variety_name}
-                  startDate={batch.seeded_date}
+                  startDate={batch.start_date}
                   stage={batch.stage}
                   stageEmoji={batch.stageEmoji}
-                  seedCount={batch.seedCount}
+                  seedCount={batch.seeds_count}
                   onClick={handleBatchClick}
                   onLogEvent={handleLogEvent}
                 />
