@@ -1,8 +1,8 @@
 # PlantLady App — Complete Roadmap
 
-**Last Updated**: February 27, 2026
-**Current Status**: Phase 9 Complete ✅
-**Next Phase**: Phase 10 — Plant Batches + My Garden
+**Last Updated**: February 28, 2026
+**Current Status**: Phase 10 Complete ✅
+**Next Phase**: Phase 11 — Distribution Log & Cost Tracking
 
 ---
 
@@ -56,29 +56,55 @@ PlantLady is a plant tracking app for Jamison & Amy to:
 - Care urgency calculation (Overdue/Today/Soon/Healthy)
 - Photo upload support for care events
 
+### Phase 9: Today Page & Data Cleanup ✅ **[COMPLETED Feb 27]**
+- Migrated TodayPage to real API data
+- Removed mock data and hardcoded plants
+- Deleted unused CollectionPage component
+- Consolidated routes and removed duplicates
+- Infrastructure setup with NAS helper script
+
+### Phase 10: Plant Batches + My Garden ✅ **[COMPLETED Feb 28]**
+- Reactivated plant batch tracking system
+- Collection page toggle between My Plants / My Garden
+- MyGardenPage with real API data and season selector
+- BatchDetailPage with event timeline
+- AddBatchFlow for creating new batches
+- Event logging for batches (SEEDED, GERMINATED, etc.)
+- Full end-to-end testing on production NAS
+- Fixed CORS and API endpoint issues
+
 ---
 
-## Current State (February 27, 2026)
+## Current State (February 28, 2026)
 
 ### ✅ What's Working
 - PIN authentication with secure hashing (argon2)
 - My Plants page shows real user plants (no mock data)
-- **Today page shows real data** with live care tracking ✅ **[NEW]**
+- Today page shows real data with live care tracking
+- **Collection page toggle between My Plants and My Garden** ✅ **[NEW]**
+- **My Garden page with season selector and real batches** ✅ **[NEW]**
+- **Add batch flow and event logging** ✅ **[NEW]**
 - Add plant flow with care schedules
 - Plant detail page with care logging
 - Care event history
-- All 12 database tables populated
+- Batch event history
+- All 12+ database tables populated with real data
 - API fully responsive at https://plants.duski.org/api/
 - Frontend deployed and responsive
 - All code building with zero TypeScript errors
+- **Full end-to-end testing complete on production NAS** ✅
 
 ### ⚠️ Known Issues
-- None (Phase 9 cleanup complete)
+- None (Phase 10 testing complete)
 
-### 🚀 Phase 9 Accomplishments
-- ✅ CollectionPage.tsx deleted (no longer needed)
-- ✅ TodayPage now uses real API data (no hardcoded mock plants)
-- ✅ Routes consolidated and cleaned up
+### 🚀 Phase 10 Accomplishments
+- ✅ Collection page redesigned with toggle
+- ✅ MyGarden page with real API data
+- ✅ Batch creation and detail viewing
+- ✅ Event logging for batches
+- ✅ Fixed CORS for production domain
+- ✅ Fixed API endpoint trailing slash issue
+- ✅ Full end-to-end testing on NAS
 
 ---
 
@@ -183,32 +209,81 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
 
 ---
 
-## Phase 10+: Future Roadmap (Not Yet Started)
+## Phase 11+: Future Roadmap (Ready to Start)
 
-### Phase 10: Plant Batches + My Garden
-- Reactivate plant batch tracking (old system)
-- Create MyGardenPage for batch view
-- Wire to real API data
-- Estimated: 6-8 hours
+### Phase 11: Distribution Log & Cost Tracking ⏳ **[READY TO START]**
 
-### Phase 11: Costs & Distribution
-- Cost tracking page with real data
-- Distribution log page
-- Estimated: 4-6 hours
+**Objective**: Track gifting/trading and seed costs
 
-### Phase 12: Dashboard & Analytics
-- Season overview dashboard
-- Variety stats
-- User comparison
-- Timeline view
-- Estimated: 8-10 hours
+**Tasks**:
+1. **Distribution Log Page**
+   - Display list of all distributions (gifts/trades)
+   - Link to batches that were distributed
+   - Show recipient and date
+   - Wire to API: GET /api/distributions (existing endpoint)
 
-### Phase 13: Year-End Review
-- PDF/HTML report generation
-- Photo gallery
-- Next season planning
-- Year-over-year comparison
-- Estimated: 10-15 hours
+2. **Cost Tracking Page**
+   - Display season costs by category
+   - Track seed costs, material costs, tools
+   - Wire to API: GET /api/costs (existing endpoint)
+   - Summary per season
+
+3. **Cost Entry Page**
+   - Add new cost record
+   - Link to batch or general
+   - Wire to API: POST /api/costs
+
+**Estimated**: 5-7 hours
+
+---
+
+### Phase 12: Dashboard & Analytics ⏳ **[FUTURE]**
+
+**Objective**: High-level season overview
+
+**Tasks**:
+1. **Season Dashboard**
+   - Total batches started/completed
+   - Distribution summary (gifted, traded, kept)
+   - Cost summary
+   - Key dates and milestones
+
+2. **Variety Statistics**
+   - Most planted varieties
+   - Success rate by variety
+   - Seasonal trends
+
+3. **User Comparison** (if relevant)
+   - Side-by-side stats
+   - Who planted what
+   - Distribution patterns
+
+**Estimated**: 8-10 hours
+
+---
+
+### Phase 13: Year-End Review ⏳ **[FUTURE]**
+
+**Objective**: Generate seasonal reports
+
+**Tasks**:
+1. **Report Generation**
+   - PDF or HTML export
+   - Timeline view of season
+   - Photo gallery
+   - Stats summary
+
+2. **Planning for Next Season**
+   - Repeat batch recommendations
+   - Failed batch analysis
+   - Budget planning
+
+3. **Year-over-Year Comparison**
+   - Compare 2025 vs 2026
+   - Trends and patterns
+   - Lessons learned
+
+**Estimated**: 10-15 hours
 
 ---
 
