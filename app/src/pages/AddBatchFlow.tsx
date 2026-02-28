@@ -111,14 +111,6 @@ export const AddBatchFlow: React.FC = () => {
         outcome_notes: notes || undefined,
       });
 
-      // Auto-log SEEDED event
-      await client.createEvent(currentUser.id, {
-        batch_id: batch.id,
-        event_type: 'SEEDED',
-        event_date: new Date().toISOString(),
-        notes: notes ? `Created batch: ${notes}` : undefined,
-      });
-
       setNewBatchId(batch.id);
       setStep('done');
     } catch (err) {
