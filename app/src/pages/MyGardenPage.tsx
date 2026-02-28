@@ -202,7 +202,7 @@ export const MyGardenPage: React.FC = () => {
               No batches this season
             </h2>
             <p className="text-[var(--color-text-2)] text-sm mb-6">
-              Start planning your {selectedSeason?.name.toLowerCase() || 'garden'}!
+              Start planning your {selectedSeason?.name ? selectedSeason.name.toLowerCase() : 'garden'}!
             </p>
             <Button variant="primary" fullWidth onClick={handleAddBatch}>
               + Start Your First Batch
