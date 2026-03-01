@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { client } from '../api/client';
 
 export const PlantIdentifyPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export const PlantIdentifyPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -32,21 +34,16 @@ export const PlantIdentifyPage: React.FC = () => {
     if (!selectedFile) return;
 
     setLoading(true);
+    setError(null);
     try {
-      // Simulate API call to plant identification service
-      // In real app, would call something like:
-      // const result = await identifyPlant(selectedFile);
-      // For now, redirect to mock result
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      navigate('/plant-identify-result/1', {
-        state: {
-          confidence: 0.89,
-          plantName: 'Monstera Deliciosa',
-          plantId: 1,
-        },
+      // Send photo to Claude Vision API for identification
+      const result = await client.identifyPlant(selectedFile);
+      navigate('/plant-identify-result', {
+        state: { result },
       });
     } catch (err) {
       console.error('Error identifying plant:', err);
+      setError('Could not identify plant. Please try again with a clearer photo.');
     } finally {
       setLoading(false);
     }
@@ -153,6 +150,13 @@ export const PlantIdentifyPage: React.FC = () => {
               Clear & Try Again
             </Button>
           </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <Card className="p-4 mt-4 bg-semantic-error/10">
+            <p className="text-sm text-semantic-error">{error}</p>
+          </Card>
         )}
 
         {/* Tips */}

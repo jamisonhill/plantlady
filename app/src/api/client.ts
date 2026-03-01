@@ -1,4 +1,4 @@
-import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal, Photo } from '../types'
+import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal, Photo, IdentifyResult } from '../types'
 
 const API_BASE = '/api'
 
@@ -252,5 +252,16 @@ export const client = {
   async getSeasonCostTotal(seasonId: number): Promise<SeasonCostTotal> {
     const response = await fetch(`${API_BASE}/costs/season/${seasonId}/total`)
     return handleResponse<SeasonCostTotal>(response)
+  },
+
+  // Plant Identification (Claude Vision)
+  async identifyPlant(file: File): Promise<IdentifyResult> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch(`${API_BASE}/identify/`, {
+      method: 'POST',
+      body: form
+    })
+    return handleResponse<IdentifyResult>(response)
   }
 }

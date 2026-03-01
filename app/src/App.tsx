@@ -149,7 +149,7 @@ function App() {
           }
         />
         <Route
-          path="/plant-identify-result/:id"
+          path="/plant-identify-result"
           element={
             <ProtectedRoute>
               <PlantIdentifyResultPage />

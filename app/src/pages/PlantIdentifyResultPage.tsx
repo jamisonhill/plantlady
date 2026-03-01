@@ -1,44 +1,36 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-
-interface IdentifyResult {
-  confidence: number;
-  plantName: string;
-  plantId: number;
-  scientificName?: string;
-  description?: string;
-}
-
-const mockResults: Record<number, IdentifyResult> = {
-  1: {
-    confidence: 0.89,
-    plantName: 'Monstera Deliciosa',
-    plantId: 1,
-    scientificName: 'Monstera deliciosa',
-    description: 'A tropical plant famous for its large, fenestrated leaves.',
-  },
-};
+import { IdentifyResult } from '../types';
 
 export const PlantIdentifyResultPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const resultId = parseInt(id || '1', 10);
-  const result = mockResults[resultId] || mockResults[1];
+  // Read real identification result from navigation state
+  const result = (location.state as { result?: IdentifyResult })?.result;
+
+  // Fallback if user navigates here directly without state
+  if (!result) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex flex-col items-center justify-center p-4">
+        <p className="text-[var(--color-text-2)] mb-4">No identification result found.</p>
+        <Button variant="primary" onClick={() => navigate('/discover')}>
+          Go to Identify
+        </Button>
+      </div>
+    );
+  }
+
   const confidencePercent = Math.round(result.confidence * 100);
 
   const handleAddPlant = () => {
     navigate('/add-plant-flow', {
       state: {
-        suggestedPlant: result.plantName,
+        suggestedPlant: result.common_name,
       },
     });
-  };
-
-  const handleViewPlantInfo = () => {
-    navigate(`/plant-info/${result.plantId}`);
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -84,11 +76,11 @@ export const PlantIdentifyResultPage: React.FC = () => {
             </Card>
 
             <h2 className="font-display text-3xl font-bold text-[var(--color-text)] mb-1">
-              {result.plantName}
+              {result.common_name}
             </h2>
-            {result.scientificName && (
+            {result.scientific_name && (
               <p className="text-sm text-[var(--color-text-2)] italic">
-                {result.scientificName}
+                {result.scientific_name}
               </p>
             )}
           </div>
@@ -116,17 +108,17 @@ export const PlantIdentifyResultPage: React.FC = () => {
                   Common Name
                 </p>
                 <p className="font-body text-[var(--color-text)]">
-                  {result.plantName}
+                  {result.common_name}
                 </p>
               </div>
 
-              {result.scientificName && (
+              {result.scientific_name && (
                 <div className="pt-3 border-t border-[var(--color-border)]">
                   <p className="text-xs text-[var(--color-text-muted)] mb-1">
                     Scientific Name
                   </p>
                   <p className="font-body text-[var(--color-text)] italic">
-                    {result.scientificName}
+                    {result.scientific_name}
                   </p>
                 </div>
               )}
@@ -142,6 +134,20 @@ export const PlantIdentifyResultPage: React.FC = () => {
             </div>
           </Card>
 
+          {/* Care Tips */}
+          {result.care_tips && result.care_tips.length > 0 && (
+            <Card className="p-4">
+              <h3 className="font-body font-medium text-[var(--color-text)] mb-3">
+                Care Tips
+              </h3>
+              <ul className="text-sm text-[var(--color-text-2)] space-y-2">
+                {result.care_tips.map((tip, i) => (
+                  <li key={i}>• {tip}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
           {/* Next Steps */}
           <div className="space-y-3">
             <Button
@@ -154,17 +160,9 @@ export const PlantIdentifyResultPage: React.FC = () => {
             </Button>
 
             <Button
-              variant="secondary"
-              fullWidth
-              onClick={handleViewPlantInfo}
-            >
-              Learn More
-            </Button>
-
-            <Button
               variant="ghost"
               fullWidth
-              onClick={() => navigate(-2)}
+              onClick={() => navigate(-1)}
             >
               Identify Another Plant
             </Button>

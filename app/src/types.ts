@@ -187,6 +187,15 @@ export interface Photo {
   created_at: string
 }
 
+// Plant identification result from Claude Vision API
+export interface IdentifyResult {
+  common_name: string
+  scientific_name: string
+  description: string
+  confidence: number  // 0.0 to 1.0
+  care_tips: string[]
+}
+
 // Total returned by GET /api/costs/season/{seasonId}/total
 export interface SeasonCostTotal {
   season_id: number
