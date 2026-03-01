@@ -8,6 +8,7 @@ export interface CareLogEntry {
   date: string;
   type: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
   notes?: string;
+  photoFilename?: string;
 }
 
 export interface GrowthPhoto {
@@ -93,6 +94,13 @@ export const PlantDetailTabs: React.FC<PlantDetailTabsProps> = ({
                   </div>
                   {entry.notes && (
                     <p className="text-sm text-[var(--color-text-2)]">{entry.notes}</p>
+                  )}
+                  {entry.photoFilename && (
+                    <img
+                      src={`/photos/${entry.photoFilename}`}
+                      alt="Care event photo"
+                      className="mt-2 w-20 h-20 object-cover rounded-lg"
+                    />
                   )}
                 </Card>
               ))}

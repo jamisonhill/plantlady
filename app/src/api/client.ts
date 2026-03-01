@@ -1,4 +1,4 @@
-import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal } from '../types'
+import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal, Photo } from '../types'
 
 const API_BASE = '/api'
 
@@ -100,14 +100,28 @@ export const client = {
   },
 
   // Photos
-  async uploadPhoto(userId: number, batchId: number, file: File): Promise<{ photo_id: number }> {
+  async uploadPhoto(userId: number, batchId: number, file: File): Promise<Photo> {
     const form = new FormData()
     form.append('file', file)
     const response = await fetch(`${API_BASE}/photos/upload?user_id=${userId}&batch_id=${batchId}`, {
       method: 'POST',
       body: form
     })
-    return handleResponse<{ photo_id: number }>(response)
+    return handleResponse<Photo>(response)
+  },
+
+  async getBatchGallery(batchId: number): Promise<Photo[]> {
+    const response = await fetch(`${API_BASE}/photos/batch/${batchId}/gallery`)
+    return handleResponse<Photo[]>(response)
+  },
+
+  async deletePhoto(photoId: number): Promise<void> {
+    const response = await fetch(`${API_BASE}/photos/${photoId}`, {
+      method: 'DELETE'
+    })
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
   },
 
   // Individual Plants (My Plants)

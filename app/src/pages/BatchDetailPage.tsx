@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Batch, Event, Variety, Distribution, DistributionSummary } from '../types';
+import { PhotoModal } from '../components/PhotoModal';
+import { Batch, Event, Variety, Distribution, DistributionSummary, Photo } from '../types';
 import { client } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const eventTypeEmojis: Record<string, string> = {
   SEEDED: '🌱',
@@ -39,11 +41,16 @@ const getStageFromLatestEvent = (events: Event[]): { name: string; emoji: string
 export const BatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const auth = useAuth();
   const [batch, setBatch] = useState<Batch | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [varieties, setVarieties] = useState<Variety[]>([]);
   const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [distSummary, setDistSummary] = useState<DistributionSummary | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -54,13 +61,14 @@ export const BatchDetailPage: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Fetch batch, events, varieties, and distributions in parallel
-      const [batchData, eventsData, varietiesData, distData, summaryData] = await Promise.all([
+      // Fetch batch, events, varieties, distributions, and photos in parallel
+      const [batchData, eventsData, varietiesData, distData, summaryData, photosData] = await Promise.all([
         client.getBatchById(batchId),
         client.getEventsForBatch(batchId),
         client.getVarieties(),
         client.getDistributions(batchId),
         client.getDistributionSummary(batchId),
+        client.getBatchGallery(batchId),
       ]);
 
       setBatch(batchData);
@@ -68,6 +76,7 @@ export const BatchDetailPage: React.FC = () => {
       setVarieties(varietiesData);
       setDistributions(distData);
       setDistSummary(summaryData);
+      setPhotos(photosData);
     } catch (err) {
       console.error('Error loading batch:', err);
       setError('Failed to load batch details');
@@ -345,15 +354,81 @@ export const BatchDetailPage: React.FC = () => {
               Photos
             </h3>
 
-            <Card className="p-6 text-center">
-              <p className="text-[var(--color-text-2)] text-sm mb-4">
-                No photos yet. Track your progress!
-              </p>
-              <Button variant="primary" fullWidth>
-                📸 Add Photo
-              </Button>
-            </Card>
+            {photos.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {photos.map((photo) => (
+                  <button
+                    key={photo.id}
+                    onClick={() => setSelectedPhoto(photo)}
+                    className="aspect-square rounded-lg overflow-hidden bg-brand-sage/10"
+                  >
+                    <img
+                      src={`/photos/${photo.filename}`}
+                      alt={photo.caption || 'Batch photo'}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-6 text-center mb-4">
+                <p className="text-[var(--color-text-2)] text-sm">
+                  No photos yet. Track your progress!
+                </p>
+              </Card>
+            )}
+
+            {/* Hidden file input for photo upload */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !auth.currentUser) return;
+                setUploadLoading(true);
+                try {
+                  const newPhoto = await client.uploadPhoto(auth.currentUser.id, batchId, file);
+                  // Prepend new photo to the gallery
+                  setPhotos((prev) => [newPhoto, ...prev]);
+                } catch (err) {
+                  console.error('Photo upload failed:', err);
+                } finally {
+                  setUploadLoading(false);
+                  // Reset input so same file can be re-selected
+                  e.target.value = '';
+                }
+              }}
+            />
+
+            <Button
+              variant="secondary"
+              fullWidth
+              disabled={uploadLoading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploadLoading ? 'Uploading...' : '+ Add Photo'}
+            </Button>
           </div>
+
+          {/* Photo modal — fullscreen viewer with delete */}
+          {selectedPhoto && (
+            <PhotoModal
+              photo={selectedPhoto}
+              onClose={() => setSelectedPhoto(null)}
+              onDelete={async (photoId) => {
+                try {
+                  await client.deletePhoto(photoId);
+                  setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+                  setSelectedPhoto(null);
+                } catch (err) {
+                  console.error('Photo delete failed:', err);
+                }
+              }}
+            />
+          )}
 
         </div>
       </div>

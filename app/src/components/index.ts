@@ -20,3 +20,4 @@ export { default as PlantCard } from './PlantCard';
 export { default as EventTypeGrid } from './EventTypeGrid';
 export { default as VarietyPicker } from './VarietyPicker';
 export { LoadingSpinner } from './LoadingSpinner';
+export { PhotoModal } from './PhotoModal';

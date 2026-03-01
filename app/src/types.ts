@@ -175,6 +175,18 @@ export interface SeasonCostCreate {
   notes?: string | null
 }
 
+// Photos attached to batches
+export interface Photo {
+  id: number
+  batch_id: number
+  event_id: number | null
+  user_id: number
+  filename: string
+  caption: string | null
+  taken_at: string
+  created_at: string
+}
+
 // Total returned by GET /api/costs/season/{seasonId}/total
 export interface SeasonCostTotal {
   season_id: number

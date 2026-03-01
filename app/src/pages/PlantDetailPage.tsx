@@ -18,6 +18,7 @@ interface CareLogEntry {
   date: string;
   type: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
   notes?: string;
+  photoFilename?: string;
 }
 
 // Calculate care items from schedules and events
@@ -51,12 +52,13 @@ function calculateCareItems(
   });
 }
 
-// Convert events to care log format
+// Convert events to care log format, including photo filename if present
 function convertToCareLog(events: CareEvent[]): CareLogEntry[] {
   return events.map((event) => ({
     date: new Date(event.event_date).toISOString().split('T')[0],
     type: event.care_type as 'WATERING' | 'FERTILIZING' | 'REPOTTING',
     notes: event.notes,
+    photoFilename: event.photo_filename,
   }));
 }
 
@@ -159,6 +161,7 @@ export const PlantDetailPage: React.FC = () => {
         {/* Hero Section */}
         <PlantHeroSection
           plantName={plant.common_name}
+          photoUrl={plant.photo_url}
           location={plant.location || 'Unknown'}
           dateAdded={dateAdded}
         />
