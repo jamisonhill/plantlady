@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Batch, Event, Variety } from '../types';
+import { Batch, Event, Variety, Distribution, DistributionSummary } from '../types';
 import { client } from '../api/client';
 
 const eventTypeEmojis: Record<string, string> = {
@@ -42,39 +42,62 @@ export const BatchDetailPage: React.FC = () => {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [varieties, setVarieties] = useState<Variety[]>([]);
+  const [distributions, setDistributions] = useState<Distribution[]>([]);
+  const [distSummary, setDistSummary] = useState<DistributionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const batchId = parseInt(id || '0', 10);
 
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Fetch batch, events, varieties, and distributions in parallel
+      const [batchData, eventsData, varietiesData, distData, summaryData] = await Promise.all([
+        client.getBatchById(batchId),
+        client.getEventsForBatch(batchId),
+        client.getVarieties(),
+        client.getDistributions(batchId),
+        client.getDistributionSummary(batchId),
+      ]);
+
+      setBatch(batchData);
+      setEvents(eventsData);
+      setVarieties(varietiesData);
+      setDistributions(distData);
+      setDistSummary(summaryData);
+    } catch (err) {
+      console.error('Error loading batch:', err);
+      setError('Failed to load batch details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError('');
-
-        // Fetch batch, events, and varieties in parallel
-        const [batchData, eventsData, varietiesData] = await Promise.all([
-          client.getBatchById(batchId),
-          client.getEventsForBatch(batchId),
-          client.getVarieties(),
-        ]);
-
-        setBatch(batchData);
-        setEvents(eventsData);
-        setVarieties(varietiesData);
-      } catch (err) {
-        console.error('Error loading batch:', err);
-        setError('Failed to load batch details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (batchId > 0) {
       loadData();
     }
   }, [batchId]);
+
+  // Delete a distribution with confirmation
+  const handleDeleteDistribution = async (distId: number) => {
+    if (!window.confirm('Delete this distribution?')) return;
+    try {
+      await client.deleteDistribution(distId);
+      // Refresh distributions and summary
+      const [distData, summaryData] = await Promise.all([
+        client.getDistributions(batchId),
+        client.getDistributionSummary(batchId),
+      ]);
+      setDistributions(distData);
+      setDistSummary(summaryData);
+    } catch (err) {
+      console.error('Error deleting distribution:', err);
+    }
+  };
 
   if (loading || !batch) {
     return (
@@ -240,6 +263,79 @@ export const BatchDetailPage: React.FC = () => {
               onClick={() => navigate(`/log-event/${batchId}`)}
             >
               + Log Event
+            </Button>
+          </div>
+
+          {/* Distributions Section */}
+          <div>
+            <h3 className="font-body font-medium text-[var(--color-text)] mb-3">
+              Distributions
+            </h3>
+
+            {/* Summary line */}
+            {distSummary && distSummary.total_distributed > 0 && (
+              <p className="text-sm text-[var(--color-text-2)] mb-3">
+                {distSummary.gifts > 0 && `${distSummary.gifts} gift${distSummary.gifts !== 1 ? 's' : ''}`}
+                {distSummary.gifts > 0 && distSummary.trades > 0 && ', '}
+                {distSummary.trades > 0 && `${distSummary.trades} trade${distSummary.trades !== 1 ? 's' : ''}`}
+                {distSummary.total_quantity > 0 && ` — ${distSummary.total_quantity} plants shared`}
+              </p>
+            )}
+
+            {distributions.length > 0 ? (
+              <div className="space-y-3">
+                {distributions.map((dist) => (
+                  <Card key={dist.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">
+                        {dist.type === 'gift' ? '🎁' : '🔄'}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-body font-medium text-[var(--color-text)]">
+                          {dist.recipient}
+                        </p>
+                        <p className="text-xs text-[var(--color-text-2)] mt-1">
+                          {dist.type === 'gift' ? 'Gift' : 'Trade'}
+                          {dist.quantity && ` · ${dist.quantity} plants`}
+                          {' · '}
+                          {new Date(dist.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                        {dist.notes && (
+                          <p className="text-sm text-[var(--color-text-2)] mt-2">
+                            {dist.notes}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteDistribution(dist.id)}
+                        className="text-[var(--color-text-2)] hover:text-red-500 text-sm"
+                        title="Delete"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-6 text-center">
+                <p className="text-[var(--color-text-2)] text-sm">
+                  No gifts or trades yet
+                </p>
+              </Card>
+            )}
+
+            <Button
+              variant="secondary"
+              fullWidth
+              className="mt-4"
+              onClick={() => navigate(`/batch/${batchId}/distribute`)}
+            >
+              + Add Gift/Trade
             </Button>
           </div>
 

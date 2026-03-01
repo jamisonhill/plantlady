@@ -1,4 +1,4 @@
-import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats } from '../types'
+import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal } from '../types'
 
 const API_BASE = '/api'
 
@@ -178,5 +178,65 @@ export const client = {
       body: form
     })
     return handleResponse<CareEvent>(response)
+  },
+
+  // Distributions (gifts/trades)
+  async getDistributions(batchId?: number): Promise<Distribution[]> {
+    const params = batchId ? `?batch_id=${batchId}` : ''
+    const response = await fetch(`${API_BASE}/distributions/${params}`)
+    return handleResponse<Distribution[]>(response)
+  },
+
+  async createDistribution(userId: number, data: DistributionCreate): Promise<Distribution> {
+    const response = await fetch(`${API_BASE}/distributions/?user_id=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return handleResponse<Distribution>(response)
+  },
+
+  async deleteDistribution(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE}/distributions/${id}`, {
+      method: 'DELETE'
+    })
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+  },
+
+  async getDistributionSummary(batchId: number): Promise<DistributionSummary> {
+    const response = await fetch(`${API_BASE}/distributions/batch/${batchId}/summary`)
+    return handleResponse<DistributionSummary>(response)
+  },
+
+  // Season Costs
+  async getCosts(seasonId?: number): Promise<SeasonCost[]> {
+    const params = seasonId ? `?season_id=${seasonId}` : ''
+    const response = await fetch(`${API_BASE}/costs/${params}`)
+    return handleResponse<SeasonCost[]>(response)
+  },
+
+  async createCost(userId: number, data: SeasonCostCreate): Promise<SeasonCost> {
+    const response = await fetch(`${API_BASE}/costs/?user_id=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return handleResponse<SeasonCost>(response)
+  },
+
+  async deleteCost(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE}/costs/${id}`, {
+      method: 'DELETE'
+    })
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+  },
+
+  async getSeasonCostTotal(seasonId: number): Promise<SeasonCostTotal> {
+    const response = await fetch(`${API_BASE}/costs/season/${seasonId}/total`)
+    return handleResponse<SeasonCostTotal>(response)
   }
 }

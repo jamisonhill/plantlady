@@ -18,6 +18,9 @@ import { PlantIdentifyResultPage } from './pages/PlantIdentifyResultPage'
 import { FriendsPage } from './pages/FriendsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ActivityFeedPage } from './pages/ActivityFeedPage'
+import { AddDistributionPage } from './pages/AddDistributionPage'
+import { CostTrackerPage } from './pages/CostTrackerPage'
+import { AddCostPage } from './pages/AddCostPage'
 import { AppLayout } from './components/AppLayout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -106,6 +109,32 @@ function App() {
           element={
             <ProtectedRoute>
               <AddBatchFlow />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/batch/:id/distribute"
+          element={
+            <ProtectedRoute>
+              <AddDistributionPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Cost Routes */}
+        <Route
+          path="/costs"
+          element={
+            <ProtectedRoute>
+              <CostTrackerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-cost"
+          element={
+            <ProtectedRoute>
+              <AddCostPage />
             </ProtectedRoute>
           }
         />

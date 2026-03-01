@@ -194,6 +194,15 @@ export const MyGardenPage: React.FC = () => {
             <Button variant="primary" fullWidth onClick={handleAddBatch}>
               + Start New Batch
             </Button>
+
+            <Button
+              variant="secondary"
+              fullWidth
+              className="mt-3"
+              onClick={() => navigate('/costs')}
+            >
+              💰 Season Costs
+            </Button>
           </div>
         ) : (
           <div className="text-center">
@@ -206,6 +215,15 @@ export const MyGardenPage: React.FC = () => {
             </p>
             <Button variant="primary" fullWidth onClick={handleAddBatch}>
               + Start Your First Batch
+            </Button>
+
+            <Button
+              variant="secondary"
+              fullWidth
+              className="mt-3"
+              onClick={() => navigate('/costs')}
+            >
+              💰 Season Costs
             </Button>
           </div>
         )}

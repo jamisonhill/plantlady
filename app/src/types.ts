@@ -118,3 +118,67 @@ export interface UserStats {
   event_count: number
   streak: number
 }
+
+// Distributions (gifts and trades from batches)
+export interface Distribution {
+  id: number
+  batch_id: number
+  user_id: number
+  recipient: string
+  quantity: number | null
+  type: string // 'gift' | 'trade'
+  date: string
+  notes: string | null
+  created_at: string
+}
+
+export interface DistributionCreate {
+  batch_id: number
+  recipient: string
+  quantity?: number | null
+  type: string // 'gift' | 'trade'
+  date: string
+  notes?: string | null
+}
+
+// Summary returned by GET /api/distributions/batch/{batchId}/summary
+export interface DistributionSummary {
+  batch_id: number
+  total_distributed: number
+  total_quantity: number
+  gifts: number
+  trades: number
+  recipients: string[]
+}
+
+// Season cost tracking
+export interface SeasonCost {
+  id: number
+  user_id: number
+  season_id: number
+  item_name: string
+  cost: number
+  quantity: number | null
+  category: string // 'seed', 'material', 'tool', etc.
+  is_one_time: boolean
+  notes: string | null
+  created_at: string
+}
+
+export interface SeasonCostCreate {
+  season_id: number
+  item_name: string
+  cost: number
+  quantity?: number | null
+  category: string
+  is_one_time?: boolean
+  notes?: string | null
+}
+
+// Total returned by GET /api/costs/season/{seasonId}/total
+export interface SeasonCostTotal {
+  season_id: number
+  year: number
+  total_cost: number
+  by_category: { category: string; total: number }[]
+}
