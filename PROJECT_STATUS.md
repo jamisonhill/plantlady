@@ -1,13 +1,13 @@
 # PlantLady — Project Status & Next Steps
 
-**Date**: 2026-02-25
-**Status**: 4 of 7 phases complete — Frontend core flows deployed and working on NAS
+**Date**: 2026-02-28
+**Status**: Phase 11 complete — Distribution log and cost tracking deployed
 
 ---
 
-## ✅ Completed Phases
+## Completed Phases
 
-### Phase 1: Infrastructure ✓
+### Phase 1: Infrastructure (Complete)
 - Docker Compose stack defined (PostgreSQL, FastAPI, Nginx)
 - Nginx reverse proxy with React SPA routing
 - Port 3010 exposed for Cloudflare Tunnel
@@ -17,7 +17,7 @@
 
 ---
 
-### Phase 2: Database ✓
+### Phase 2: Database (Complete)
 - 8 SQLAlchemy ORM models with relationships
 - Complete Alembic migration system
 - Initial schema migration (all tables, indexes, constraints)
@@ -28,7 +28,7 @@
 
 ---
 
-### Phase 3: API ✓
+### Phase 3: API (Complete)
 - 40+ REST endpoints across 6 routers
 - Plant varieties & batches CRUD
 - Event logging (quick milestone tracking)
@@ -41,57 +41,66 @@
 
 ---
 
-## 📋 Upcoming Phases
+## Phases Summary
 
-### Phase 4: Frontend — Core Logging Flows ✓
-**Goal**: Make data entry fun and fast (3 taps max)
+### Phase 4: Frontend Core Logging Flows (Complete — 2026-02-25)
+PIN login, home dashboard, quick event logging (3-tap flow), add plant batch, photo upload. Deployed on NAS.
 
-✓ PIN login screen (1017 for Jamison, 0304 for Amy)
-✓ Eliminated user selector (direct PIN → home navigation)
-✓ Home dashboard (plant list by season, FAB for quick add)
-✓ Quick event logging flow (tap plant → 3-step state machine → success)
-✓ Add new plant batch form with variety picker
-✓ Photo upload with device camera access
-✓ Deployed on NAS at http://192.168.0.9:3010/
+### Phase 5: Auth & User Management (Complete)
+Argon2 PIN hashing, user stats endpoint, ProfilePage with real data.
 
-**Frontend Stack**: React 18, TypeScript, Tailwind CSS, React Router v6
-**Key Features**:
-- SessionStorage persistence across page refreshes
-- Responsive design with min-h-[44px] tap targets
-- Emoji event type indicators
-- Loading states and error handling
-- Private browser tabs tested (cache-free)
+### Phase 6: My Plants Integration (Complete — 2026-02-27)
+Individual plant tracking, care schedules, care events. MyPlantsPage, PlantDetailPage, AddPlantFlow.
 
----
+### Phase 7: Today Page (Complete — 2026-02-27)
+Real data on Today page. Care due today, upcoming care calendar, live care logging.
 
-### Phase 5: Frontend — Detail Views
-**Goal**: Explore plants, costs, and trades
+### Phase 8: My Garden / Batch Tracking (Complete — 2026-02-27 to 2026-02-28)
+MyGardenPage, BatchDetailPage, AddBatchFlow, LogEventPage fixes. Full batch and event tracking wired to API.
 
-- [ ] Plant detail page (events timeline, photos gallery, stats)
-- [ ] Season cost tracker (breakdown by category, total)
-- [ ] Distribution log (who received what, when)
-- [ ] Settings/user info page
+### Phase 9: Collection Page Toggle (Complete — 2026-02-28)
+Collection page toggle between My Plants and My Garden views.
+
+### Phase 10: Documentation & Polish (Complete — 2026-02-28)
+Docs updated, CORS and API trailing slash fixes, route deduplication.
+
+### Phase 11: Distribution Log & Cost Tracking (Complete — 2026-02-28)
+AddDistributionPage, CostTrackerPage, AddCostPage. Distributions section on BatchDetailPage. Season Costs button on MyGardenPage. See PHASE_11_COMPLETE.md.
 
 ---
 
-### Phase 6: Dashboard & Analytics
-**Goal**: See the big picture
+## Upcoming Phases
 
-- [ ] Season stats (plants started, germinated, mature, etc.)
-- [ ] Both users' activity visible in one view
-- [ ] Cost per plant calculation
-- [ ] Quick stats cards (total batches, total cost, distributed qty)
+### Phase 12: Photo Gallery & Batch Photos
+**Goal**: Browse and capture photos per batch and per event.
+
+- [ ] Photo grid on BatchDetailPage
+- [ ] Tap-to-expand photo modal
+- [ ] Photo upload from batch and plant detail
+- [ ] Delete photo with confirmation
+
+Backend endpoints already exist in api/routers/photos.py. Frontend work only.
 
 ---
 
-### Phase 7: Year-End Review
-**Goal**: Beautiful auto-generated season report
+### Phase 13: Dashboard & Analytics
+**Goal**: High-level season overview.
+
+- [ ] Season summary stats (batches, germinated, mature, harvested)
+- [ ] Cost per batch calculation
+- [ ] Distribution summary (total gifted, traded, top recipients)
+- [ ] Both users' activity in one view
+
+---
+
+### Phase 14: Year-End Review
+**Goal**: Auto-generated season report.
 
 - [ ] Generate PDF/HTML report
 - [ ] Season statistics by plant category
 - [ ] Year-over-year comparison (2025 vs 2026)
-- [ ] Photo gallery (best photo per plant)
-- [ ] Repeat/Skip/Maybe breakdown for next season
+- [ ] Photo gallery (best photo per batch)
+- [ ] Repeat/Skip/Maybe indicator for next season
 - [ ] Cost analysis
 
 ---
@@ -316,18 +325,25 @@ psql -h localhost -U plantlady -d plantlady -p 5432
 
 ---
 
-## 📈 Progress
+## Progress
 
 ```
-Phase 1: Infrastructure    [██████████] 100%
-Phase 2: Database          [██████████] 100%
-Phase 3: API               [██████████] 100%
-Phase 4: Frontend Core     [██████████] 100%
-Phase 5: Frontend Detail   [          ] 0%
-Phase 6: Dashboard         [          ] 0%
-Phase 7: Year-End Report   [          ] 0%
-───────────────────────────────────────
-Overall                    [████      ] 57%
+Phase 1:  Infrastructure           [██████████] 100%
+Phase 2:  Database                 [██████████] 100%
+Phase 3:  API                      [██████████] 100%
+Phase 4:  Frontend Core            [██████████] 100%
+Phase 5:  Auth                     [██████████] 100%
+Phase 6:  My Plants                [██████████] 100%
+Phase 7:  Today Page               [██████████] 100%
+Phase 8:  My Garden / Batches      [██████████] 100%
+Phase 9:  Collection Toggle        [██████████] 100%
+Phase 10: Documentation / Polish   [██████████] 100%
+Phase 11: Distribution & Costs     [██████████] 100%
+Phase 12: Photo Gallery            [          ] 0%
+Phase 13: Dashboard & Analytics    [          ] 0%
+Phase 14: Year-End Review          [          ] 0%
+──────────────────────────────────────────────────
+Overall                            [███████   ] 79%
 ```
 
 ---

@@ -1,8 +1,8 @@
 # PlantLady App — Complete Roadmap
 
 **Last Updated**: February 28, 2026
-**Current Status**: Phase 10 Complete ✅
-**Next Phase**: Phase 11 — Distribution Log & Cost Tracking
+**Current Status**: Phase 11 Complete ✅
+**Next Phase**: Phase 12 — Photo Gallery & Batch Photos
 
 ---
 
@@ -73,6 +73,18 @@ PlantLady is a plant tracking app for Jamison & Amy to:
 - Full end-to-end testing on production NAS
 - Fixed CORS and API endpoint issues
 
+### Phase 11: Distribution Log & Cost Tracking ✅ **[COMPLETED Feb 28]**
+- Distribution types added to types.ts + 4 API client methods (getDistributions, createDistribution, deleteDistribution, getDistributionSummary)
+- Season cost types added to types.ts + 4 API client methods (getCosts, createCost, deleteCost, getSeasonCostTotal)
+- Distributions section added to BatchDetailPage (list, summary stats, delete, "Add Gift/Trade" button)
+- AddDistributionPage: gift/trade entry form (type toggle, recipient, quantity, date, notes)
+- CostTrackerPage: season cost list with season selector, total display, category breakdown, delete
+- AddCostPage: cost entry form (item name, amount, quantity, category, one-time toggle, notes)
+- 3 new routes: /batch/:id/distribute, /costs, /add-cost
+- "Season Costs" button added to MyGardenPage
+- All frontend-only work — backend endpoints were already complete
+- Commit: cb3f9be
+
 ---
 
 ## Current State (February 28, 2026)
@@ -81,30 +93,33 @@ PlantLady is a plant tracking app for Jamison & Amy to:
 - PIN authentication with secure hashing (argon2)
 - My Plants page shows real user plants (no mock data)
 - Today page shows real data with live care tracking
-- **Collection page toggle between My Plants and My Garden** ✅ **[NEW]**
-- **My Garden page with season selector and real batches** ✅ **[NEW]**
-- **Add batch flow and event logging** ✅ **[NEW]**
+- Collection page toggle between My Plants and My Garden
+- My Garden page with season selector and real batches
+- Add batch flow and event logging
 - Add plant flow with care schedules
 - Plant detail page with care logging
 - Care event history
 - Batch event history
+- **Distribution log per batch (gifts and trades)** ✅ **[NEW Phase 11]**
+- **Season cost tracker with category breakdown** ✅ **[NEW Phase 11]**
+- **Add distribution and add cost forms** ✅ **[NEW Phase 11]**
 - All 12+ database tables populated with real data
 - API fully responsive at https://plants.duski.org/api/
 - Frontend deployed and responsive
 - All code building with zero TypeScript errors
-- **Full end-to-end testing complete on production NAS** ✅
 
 ### ⚠️ Known Issues
-- None (Phase 10 testing complete)
+- None
 
-### 🚀 Phase 10 Accomplishments
-- ✅ Collection page redesigned with toggle
-- ✅ MyGarden page with real API data
-- ✅ Batch creation and detail viewing
-- ✅ Event logging for batches
-- ✅ Fixed CORS for production domain
-- ✅ Fixed API endpoint trailing slash issue
-- ✅ Full end-to-end testing on NAS
+### Phase 11 Accomplishments
+- ✅ Distribution types and API client methods wired up
+- ✅ Season cost types and API client methods wired up
+- ✅ Distributions section on BatchDetailPage
+- ✅ AddDistributionPage (gift/trade form)
+- ✅ CostTrackerPage with season selector and totals
+- ✅ AddCostPage (cost entry form)
+- ✅ 3 new routes registered in App.tsx
+- ✅ "Season Costs" button on MyGardenPage
 
 ---
 
@@ -209,35 +224,38 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
 
 ---
 
-## Phase 11+: Future Roadmap (Ready to Start)
+## Phase 12+: Future Roadmap (Ready to Start)
 
-### Phase 11: Distribution Log & Cost Tracking ⏳ **[READY TO START]**
+### Phase 12: Photo Gallery & Batch Photos ⏳ **[READY TO START]**
 
-**Objective**: Track gifting/trading and seed costs
+**Objective**: Let users capture and browse photos per batch and per event.
+
+**Notes**: Backend endpoints already exist in `api/routers/photos.py`. This is frontend work only.
 
 **Tasks**:
-1. **Distribution Log Page**
-   - Display list of all distributions (gifts/trades)
-   - Link to batches that were distributed
-   - Show recipient and date
-   - Wire to API: GET /api/distributions (existing endpoint)
+1. **Photo Grid on BatchDetailPage**
+   - Display all photos attached to a batch
+   - Tap to expand into a modal viewer
+   - Wire to API: GET /api/photos/batch/{batchId} (existing endpoint)
 
-2. **Cost Tracking Page**
-   - Display season costs by category
-   - Track seed costs, material costs, tools
-   - Wire to API: GET /api/costs (existing endpoint)
-   - Summary per season
+2. **Photo Upload from BatchDetailPage**
+   - Camera/file picker button
+   - Optional caption
+   - Wire to API: POST /api/photos/upload (existing endpoint)
 
-3. **Cost Entry Page**
-   - Add new cost record
-   - Link to batch or general
-   - Wire to API: POST /api/costs
+3. **Photo on PlantDetailPage**
+   - Same grid/modal pattern for individual plant care event photos
+   - Wire to existing photo endpoints
 
-**Estimated**: 5-7 hours
+4. **Delete Photo**
+   - Long-press or swipe to delete with confirmation
+   - Wire to API: DELETE /api/photos/{photoId} (existing endpoint)
+
+**Estimated**: 4-6 hours
 
 ---
 
-### Phase 12: Dashboard & Analytics ⏳ **[FUTURE]**
+### Phase 13: Dashboard & Analytics ⏳ **[FUTURE]**
 
 **Objective**: High-level season overview
 
@@ -262,7 +280,7 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
 
 ---
 
-### Phase 13: Year-End Review ⏳ **[FUTURE]**
+### Phase 14: Year-End Review ⏳ **[FUTURE]**
 
 **Objective**: Generate seasonal reports
 
@@ -287,51 +305,44 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
 
 ---
 
-## How to Start Phase 9
+## How to Start Phase 12
 
-### 1️⃣ **Read This File First**
-You're reading it! ✓
+### 1. Read This File First
+You're reading it!
 
-### 2️⃣ **Create a Feature Branch** (optional)
+### 2. Create a Feature Branch (optional)
 ```bash
 cd /Users/jamisonhill/Ai/plantlady
-git checkout -b feature/phase-9-cleanup
+git checkout -b feature/phase-12-photos
 ```
 
-### 3️⃣ **Start with Task 1: Today Page Migration**
-- Open `app/src/pages/TodayPage.tsx`
-- Review current mock data structure
-- Look at `MyPlantsPage.tsx` for reference implementation
-- Implement real API data fetching
-- Test in browser: PIN login → Today tab
+### 3. Start with Task 1: Photo Grid on BatchDetailPage
+- Open `app/src/pages/BatchDetailPage.tsx`
+- Add a photos section below the events timeline
+- Fetch photos from `GET /api/photos/batch/{batchId}`
+- Render as a 3-column grid of thumbnails
 
-### 4️⃣ **Test Locally**
+### 4. Test Locally
 ```bash
 cd app
 npm run dev
 # Visit http://localhost:5173
 # Login with PIN "1234"
-# Check Today page displays real plants
+# Navigate to a batch detail page
+# Verify photo grid renders
 ```
 
-### 5️⃣ **Build & Deploy**
+### 5. Build & Deploy
 ```bash
 npm run build
 # Copy dist files to NAS /volume1/docker/plantlady/frontend/
 ```
 
-### 6️⃣ **Verify on NAS**
+### 6. Verify on NAS
 ```bash
 # Visit https://plants.duski.org
-# Check Today page shows real plants
 # Verify no console errors
-```
-
-### 7️⃣ **Commit & Push**
-```bash
-git add -A
-git commit -m "Phase 9: Migrate Today page to real data"
-git push origin feature/phase-9-cleanup
+# Test photo upload and delete
 ```
 
 ---
@@ -339,17 +350,15 @@ git push origin feature/phase-9-cleanup
 ## Key Code Locations for Reference
 
 ### Frontend
-- **Login/Auth**: `app/src/context/AuthContext.tsx`
-- **My Plants (reference)**: `app/src/pages/MyPlantsPage.tsx` ⭐ Copy urgency calc from here
-- **Plant Detail**: `app/src/pages/PlantDetailPage.tsx` ⭐ Copy care logging from here
-- **Today Page**: `app/src/pages/TodayPage.tsx` ← MODIFY THIS
-- **API Client**: `app/src/api/client.ts`
-- **Types**: `app/src/types.ts`
+- **Batch Detail**: `app/src/pages/BatchDetailPage.tsx` — add photo section here
+- **Plant Detail**: `app/src/pages/PlantDetailPage.tsx` — add care event photos here
+- **API Client**: `app/src/api/client.ts` — add photo client methods here
+- **Types**: `app/src/types.ts` — Photo type already defined
+- **Auth Context**: `app/src/context/AuthContext.tsx`
 
 ### Backend
-- **Individual Plants Router**: `api/routers/individual_plants.py` ⭐ Shows all endpoints
+- **Photos Router**: `api/routers/photos.py` — all endpoints already exist
 - **Models**: `api/models.py`
-- **Main**: `api/main.py`
 
 ### Database
 - **Schema**: See `DATABASE.md`
@@ -357,29 +366,27 @@ git push origin feature/phase-9-cleanup
 
 ---
 
-## Testing Checklist for Phase 9
+## Testing Checklist for Phase 12
 
 ### Before Committing
 - [ ] TypeScript compiles without errors (`npm run build`)
-- [ ] No ESLint warnings
-- [ ] Today page loads without errors
-- [ ] Real plants display on Today page
-- [ ] Care urgency badges show correctly
-- [ ] Quick-log buttons work
+- [ ] Photo grid renders on BatchDetailPage
+- [ ] Tap to expand photo modal works
+- [ ] Photo upload from batch detail works
+- [ ] Delete photo with confirmation works
 - [ ] Console has no errors
 
 ### On NAS
 - [ ] Frontend builds successfully
 - [ ] https://plants.duski.org loads
 - [ ] Login works (PIN "1234")
-- [ ] Today page shows real plants
-- [ ] Plant detail page still works
-- [ ] My Plants page still works
-- [ ] Add plant flow still works
+- [ ] Photo grid visible on batch pages
+- [ ] Upload photo from mobile camera works
+- [ ] All previous features still working
 
 ---
 
-## Deployment Instructions (Phase 9)
+## Deployment (Standard)
 
 ### Local Build
 ```bash
@@ -396,89 +403,41 @@ ssh jamison.hill@192.168.0.9 "rm -rf /volume1/docker/plantlady/frontend/*"
 scp -r dist/* jamison.hill@192.168.0.9:/volume1/docker/plantlady/frontend/
 ```
 
-### Or use heredoc method (if SCP fails)
-```bash
-# Upload index.html
-cat app/dist/index.html | ssh jamison.hill@192.168.0.9 "cat > /volume1/docker/plantlady/frontend/index.html"
+---
 
-# Upload assets one by one
-for file in app/dist/assets/*; do
-  filename=$(basename "$file")
-  cat "$file" | ssh jamison.hill@192.168.0.9 "cat > /volume1/docker/plantlady/frontend/assets/$filename"
-done
-```
+## Quick Reference: API Endpoints
+
+### Individual Plants
+- `GET /api/individual-plants?user_id={userId}`
+- `GET /api/individual-plants/{plant_id}/care-schedule`
+- `GET /api/individual-plants/{plant_id}/care-events`
+- `POST /api/individual-plants/{plant_id}/care-events`
+
+### Batches & Events
+- `GET /api/plants/batches?season_id={seasonId}`
+- `GET /api/plants/batches/{batchId}`
+- `GET /api/events/batch/{batchId}/timeline`
+- `POST /api/events/`
+
+### Distributions
+- `GET /api/distributions?batch_id={batchId}`
+- `POST /api/distributions/`
+- `DELETE /api/distributions/{id}`
+- `GET /api/distributions/summary?batch_id={batchId}`
+
+### Costs
+- `GET /api/costs?season_id={seasonId}`
+- `POST /api/costs/`
+- `DELETE /api/costs/{id}`
+- `GET /api/costs/total?season_id={seasonId}`
+
+### Photos
+- `GET /api/photos/batch/{batchId}`
+- `POST /api/photos/upload`
+- `DELETE /api/photos/{photoId}`
+
+All backend endpoints exist. No backend work needed for Phase 12.
 
 ---
 
-## Git Commit Message Template for Phase 9
-
-```
-Phase 9: [Task Name]
-
-- Brief description of changes
-- What was removed/deprecated
-- Testing done
-
-Fixes: [any issues]
-```
-
-### Example
-```
-Phase 9: Migrate Today page to real data
-
-- Replace hardcoded mock plants with API fetch
-- Reuse care urgency calculation from MyPlantsPage
-- Add loading state while fetching plants
-- Tested: Login → Today tab shows real plants
-
-Fixes: #issue-number (if any)
-```
-
----
-
-## Success Criteria for Phase 9
-
-✅ **Phase 9 is Complete When**:
-1. Today page displays real user plants (not mock data)
-2. Care urgency badges calculate correctly
-3. Quick-log care buttons functional
-4. CollectionPage.tsx deleted
-5. No unused imports or broken routes
-6. Database audit completed
-7. Frontend deployed and tested on NAS
-8. All commits pushed to GitHub
-9. No console errors in production
-10. All previous features still working
-
----
-
-## Quick Reference: API Endpoints Needed
-
-For Phase 9, you'll need:
-- ✅ `GET /api/individual-plants?user_id={userId}` — fetch plants
-- ✅ `GET /api/individual-plants/{plant_id}/care-schedule` — fetch schedules
-- ✅ `GET /api/individual-plants/{plant_id}/care-events` — fetch events
-
-All these exist! No backend work needed.
-
----
-
-## Questions Before Starting?
-
-If anything is unclear:
-1. Check the code references above
-2. Look at MyPlantsPage.tsx for the exact pattern to follow
-3. Review the API docs at https://plants.duski.org/api/docs
-4. Check DATABASE.md for schema questions
-
----
-
-## Next Document to Read
-
-After Phase 9 is done:
-- Create a Phase 10 plan (Plant Batches + My Garden)
-- Or decide if that's still relevant
-
----
-
-**Ready to start Phase 9? Pick up with the "How to Start" section above! 🚀**
+**Ready to start Phase 12? Pick up with the "How to Start Phase 12" section above.**

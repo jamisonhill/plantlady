@@ -4,16 +4,17 @@ A beautiful, mobile-friendly gardening tracker for collaborative plant managemen
 
 ---
 
-## 🎯 **START HERE**
+## START HERE
 
 ### Coming Back to Work?
-1. **Read**: `CURRENT_STATUS.md` (where you left off)
-2. **Test**: Follow `PHASE_9_TEST_PLAN.md` to verify Phase 9
-3. **Plan**: Check `ROADMAP.md` for next phase
+1. **Read**: `ROADMAP.md` — current status and next phase (Phase 12)
+2. **Check**: `CHANGELOG.md` — what changed in the last phase
+3. **Reference**: `PHASE_11_COMPLETE.md` — detailed record of Phase 11 work
 
 ### Want Project Overview?
 - **ROADMAP.md** — Complete project roadmap, all phases, long-term plan
-- **CURRENT_STATUS.md** — Where we are right now, what's next
+- **CHANGELOG.md** — Summary of every phase's changes
+- **PROJECT_STATUS.md** — Phase checklist and progress tracker
 
 ### Want to Deploy or Set Up?
 - See "Quick Start" section below
@@ -73,11 +74,11 @@ A beautiful, mobile-friendly gardening tracker for collaborative plant managemen
 
 ```
 /
-├── README.md                  # 👈 **START HERE** — Overview & documentation index
-├── CURRENT_STATUS.md          # 📍 Session checkpoint — What's being worked on now
-├── ROADMAP.md                 # 🗺️ Long-term project roadmap & all phases
-├── PHASE_9_TEST_PLAN.md       # 🧪 Testing instructions for Phase 9
-├── PHASE_9_VERIFICATION.md    # ✅ Task checklist for Phase 9
+├── README.md                  # START HERE — Overview & documentation index
+├── ROADMAP.md                 # Long-term project roadmap & all phases
+├── CHANGELOG.md               # Summary of every phase's changes
+├── PROJECT_STATUS.md          # Phase checklist and progress tracker
+├── PHASE_11_COMPLETE.md       # Detailed record of Phase 11
 ├── docker-compose.yml          # Portainer Stack definition
 ├── .env.example               # Environment variables template
 ├── .env.local                 # Local NAS config (gitignored)
@@ -121,15 +122,21 @@ A beautiful, mobile-friendly gardening tracker for collaborative plant managemen
 
 ## Implementation Phases
 
-See `nextsteps.md` for detailed checklist:
+See `ROADMAP.md` for full details.
 
-1. **Infrastructure** ✓ — Docker compose, Nginx, basic containers
-2. **Database** — PostgreSQL schema, migrations, seed data
-3. **API** — Auth, CRUD endpoints, photo upload
-4. **Frontend (Phase 4)** — Login, dashboard, quick logging
-5. **Frontend (Phase 5)** — Detail views, cost tracking, distribution log
-6. **Dashboard & Analytics** — Stats, year-end review prep
-7. **Year-End Review** — Automated report generation with photos
+1. **Infrastructure** (complete) — Docker compose, Nginx, basic containers
+2. **Database** (complete) — PostgreSQL schema, migrations, seed data
+3. **API** (complete) — 40+ endpoints, auth, CRUD, photo upload
+4. **Frontend Core** (complete) — Login, dashboard, quick logging
+5. **Auth** (complete) — Argon2 PIN hashing, user stats
+6. **My Plants** (complete) — Individual plant tracking, care schedules
+7. **Today Page** (complete) — Real data, care urgency, live logging
+8. **My Garden** (complete) — Batch tracking, event timeline
+9-10. **Collection & Polish** (complete) — Toggle view, route cleanup
+11. **Distribution & Costs** (complete) — Gift/trade log, season costs
+12. **Photo Gallery** — Batch and plant photos (next)
+13. **Dashboard & Analytics** — Season stats, cost summaries
+14. **Year-End Review** — Auto-generated season report
 
 ## Data Model Overview
 
