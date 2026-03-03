@@ -1,8 +1,8 @@
 # PlantLady App — Complete Roadmap
 
-**Last Updated**: February 28, 2026
-**Current Status**: Phase 11 Complete ✅
-**Next Phase**: Phase 12 — Photo Gallery & Batch Photos
+**Last Updated**: March 2, 2026
+**Current Status**: Phase 13 Complete ✅
+**Next Phase**: Phase 14 — Dashboard & Analytics
 
 ---
 
@@ -85,9 +85,28 @@ PlantLady is a plant tracking app for Jamison & Amy to:
 - All frontend-only work — backend endpoints were already complete
 - Commit: cb3f9be
 
+### Phase 12: Photo Gallery & Batch Photos ✅ **[COMPLETED Feb 28]**
+- Added `Photo` interface to types.ts
+- Fixed `uploadPhoto` return type, added `getBatchGallery` + `deletePhoto` API client methods
+- Created `PhotoModal` component (fullscreen viewer with caption, date, close/delete buttons)
+- Wired BatchDetailPage photo gallery (3-column grid, file upload, upload/delete handlers, modal)
+- Care event photo thumbnails in PlantDetailTabs care log
+- Wired `photoUrl` to PlantHeroSection in PlantDetailPage
+- Frontend only — backend photo endpoints already existed
+- Commit: 13b4efb
+
+### Phase 13: Plant Identifier ✅ **[COMPLETED Mar 1]**
+- PlantIdentifyPage: camera/file upload UI to capture plant photo
+- PlantIdentifyResultPage: displays identification results via location.state
+- `/api/identify/` backend router using Claude Vision API (Anthropic SDK)
+- Returns plant name, confidence score, care tips, and description
+- Requires `ANTHROPIC_API_KEY` env var set in Portainer on plantlady-api container
+- New routes: `/plant-identify`, `/plant-identify-result`
+- Commit: af01d0b
+
 ---
 
-## Current State (February 28, 2026)
+## Current State (March 2, 2026)
 
 ### ✅ What's Working
 - PIN authentication with secure hashing (argon2)
@@ -98,11 +117,14 @@ PlantLady is a plant tracking app for Jamison & Amy to:
 - Add batch flow and event logging
 - Add plant flow with care schedules
 - Plant detail page with care logging
-- Care event history
+- Care event history with photo thumbnails
 - Batch event history
-- **Distribution log per batch (gifts and trades)** ✅ **[NEW Phase 11]**
-- **Season cost tracker with category breakdown** ✅ **[NEW Phase 11]**
-- **Add distribution and add cost forms** ✅ **[NEW Phase 11]**
+- Distribution log per batch (gifts and trades)
+- Season cost tracker with category breakdown
+- Add distribution and add cost forms
+- **Batch photo gallery with fullscreen modal** ✅ **[NEW Phase 12]**
+- **Plant hero image and care event photo thumbnails** ✅ **[NEW Phase 12]**
+- **Plant identifier via Claude Vision API** ✅ **[NEW Phase 13]**
 - All 12+ database tables populated with real data
 - API fully responsive at https://plants.duski.org/api/
 - Frontend deployed and responsive
@@ -110,16 +132,6 @@ PlantLady is a plant tracking app for Jamison & Amy to:
 
 ### ⚠️ Known Issues
 - None
-
-### Phase 11 Accomplishments
-- ✅ Distribution types and API client methods wired up
-- ✅ Season cost types and API client methods wired up
-- ✅ Distributions section on BatchDetailPage
-- ✅ AddDistributionPage (gift/trade form)
-- ✅ CostTrackerPage with season selector and totals
-- ✅ AddCostPage (cost entry form)
-- ✅ 3 new routes registered in App.tsx
-- ✅ "Season Costs" button on MyGardenPage
 
 ---
 
@@ -224,38 +236,9 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
 
 ---
 
-## Phase 12+: Future Roadmap (Ready to Start)
+## Phase 14+: Future Roadmap
 
-### Phase 12: Photo Gallery & Batch Photos ⏳ **[READY TO START]**
-
-**Objective**: Let users capture and browse photos per batch and per event.
-
-**Notes**: Backend endpoints already exist in `api/routers/photos.py`. This is frontend work only.
-
-**Tasks**:
-1. **Photo Grid on BatchDetailPage**
-   - Display all photos attached to a batch
-   - Tap to expand into a modal viewer
-   - Wire to API: GET /api/photos/batch/{batchId} (existing endpoint)
-
-2. **Photo Upload from BatchDetailPage**
-   - Camera/file picker button
-   - Optional caption
-   - Wire to API: POST /api/photos/upload (existing endpoint)
-
-3. **Photo on PlantDetailPage**
-   - Same grid/modal pattern for individual plant care event photos
-   - Wire to existing photo endpoints
-
-4. **Delete Photo**
-   - Long-press or swipe to delete with confirmation
-   - Wire to API: DELETE /api/photos/{photoId} (existing endpoint)
-
-**Estimated**: 4-6 hours
-
----
-
-### Phase 13: Dashboard & Analytics ⏳ **[FUTURE]**
+### Phase 14: Dashboard & Analytics ⏳ **[READY TO START]**
 
 **Objective**: High-level season overview
 
@@ -280,7 +263,7 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
 
 ---
 
-### Phase 14: Year-End Review ⏳ **[FUTURE]**
+### Phase 15: Year-End Review ⏳ **[FUTURE]**
 
 **Objective**: Generate seasonal reports
 
@@ -302,48 +285,6 @@ docker exec plantlady-db psql -U plantlady -d plantlady -c "
    - Lessons learned
 
 **Estimated**: 10-15 hours
-
----
-
-## How to Start Phase 12
-
-### 1. Read This File First
-You're reading it!
-
-### 2. Create a Feature Branch (optional)
-```bash
-cd /Users/jamisonhill/Ai/plantlady
-git checkout -b feature/phase-12-photos
-```
-
-### 3. Start with Task 1: Photo Grid on BatchDetailPage
-- Open `app/src/pages/BatchDetailPage.tsx`
-- Add a photos section below the events timeline
-- Fetch photos from `GET /api/photos/batch/{batchId}`
-- Render as a 3-column grid of thumbnails
-
-### 4. Test Locally
-```bash
-cd app
-npm run dev
-# Visit http://localhost:5173
-# Login with PIN "1234"
-# Navigate to a batch detail page
-# Verify photo grid renders
-```
-
-### 5. Build & Deploy
-```bash
-npm run build
-# Copy dist files to NAS /volume1/docker/plantlady/frontend/
-```
-
-### 6. Verify on NAS
-```bash
-# Visit https://plants.duski.org
-# Verify no console errors
-# Test photo upload and delete
-```
 
 ---
 
@@ -396,11 +337,13 @@ npm run build
 
 ### Deploy to NAS
 ```bash
-# Clear old frontend
-ssh jamison.hill@192.168.0.9 "rm -rf /volume1/docker/plantlady/frontend/*"
+# Build then deploy via tar (SCP doesn't work on this NAS)
+tar czf - -C dist . | ssh -o BatchMode=yes jamison.hill@192.168.0.9 \
+  "cd /volume1/docker/plantlady/frontend && rm -rf assets && tar xzf -"
 
-# Upload new files
-scp -r dist/* jamison.hill@192.168.0.9:/volume1/docker/plantlady/frontend/
+# Restart nginx
+ssh -o BatchMode=yes jamison.hill@192.168.0.9 \
+  "echo 'Pats4ouk' | sudo -S /usr/local/bin/docker restart plantlady-nginx"
 ```
 
 ---
@@ -440,4 +383,4 @@ All backend endpoints exist. No backend work needed for Phase 12.
 
 ---
 
-**Ready to start Phase 12? Pick up with the "How to Start Phase 12" section above.**
+**Ready to start Phase 14? See the Dashboard & Analytics section above.**
