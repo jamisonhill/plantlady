@@ -30,6 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql://plantlady:${DB_PASSWORD:-change_me}@plantlady-db:5432/plantlady
       DEBUG: ${DEBUG:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     volumes:
       - plantlady-photos-volume:/app/photos
     # ports:

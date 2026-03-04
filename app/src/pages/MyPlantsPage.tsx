@@ -4,7 +4,7 @@ import { PlantGridCard } from '../components/PlantGridCard';
 import { Button } from '../components/Button';
 import { client } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { IndividualPlant, CareSchedule, CareEvent } from '../types';
+import { IndividualPlant } from '../types';
 
 interface PlantDisplay {
   id: number;
@@ -12,66 +12,6 @@ interface PlantDisplay {
   photoUrl?: string;
   careUrgency: 'overdue' | 'today' | 'soon' | 'healthy';
   careLabel: string;
-}
-
-// Calculate care urgency based on last event and schedule
-function calculateCareUrgency(
-  schedules: CareSchedule[],
-  events: CareEvent[]
-): { urgency: 'overdue' | 'today' | 'soon' | 'healthy'; label: string } {
-  if (!schedules.length) {
-    return { urgency: 'healthy', label: 'Healthy' };
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  let mostUrgent: { daysUntilDue: number; urgency: 'overdue' | 'today' | 'soon' | 'healthy'; label: string } = {
-    daysUntilDue: Infinity,
-    urgency: 'healthy',
-    label: 'Healthy',
-  };
-
-  for (const schedule of schedules) {
-    // Find last event of this care type
-    const lastEvent = events.find((e) => e.care_type === schedule.care_type);
-    let daysUntilDue: number;
-
-    if (!lastEvent) {
-      // Never done - assume overdue
-      daysUntilDue = -1;
-    } else {
-      const eventDate = new Date(lastEvent.event_date);
-      eventDate.setHours(0, 0, 0, 0);
-      const daysSinceLast = Math.floor(
-        (today.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      daysUntilDue = schedule.frequency_days - daysSinceLast;
-    }
-
-    if (daysUntilDue < mostUrgent.daysUntilDue) {
-      let urgency: 'overdue' | 'today' | 'soon' | 'healthy';
-      let label: string;
-
-      if (daysUntilDue < 0) {
-        urgency = 'overdue';
-        label = `Overdue ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''}`;
-      } else if (daysUntilDue === 0) {
-        urgency = 'today';
-        label = 'Due today';
-      } else if (daysUntilDue <= 3) {
-        urgency = 'soon';
-        label = `Due in ${daysUntilDue}d`;
-      } else {
-        urgency = 'healthy';
-        label = 'Healthy';
-      }
-
-      mostUrgent = { daysUntilDue, urgency, label };
-    }
-  }
-
-  return { urgency: mostUrgent.urgency, label: mostUrgent.label };
 }
 
 export const MyPlantsPage: React.FC = () => {
@@ -87,25 +27,14 @@ export const MyPlantsPage: React.FC = () => {
       try {
         const userPlants = await client.getPlants(auth.currentUser!.id);
 
-        // For each plant, fetch schedules and events to calculate urgency
-        const displayPlants = await Promise.all(
-          userPlants.map(async (plant: IndividualPlant) => {
-            const [schedules, events] = await Promise.all([
-              client.getPlantCareSchedule(plant.id),
-              client.getPlantCareEvents(plant.id),
-            ]);
-
-            const { urgency, label } = calculateCareUrgency(schedules, events);
-
-            return {
-              id: plant.id,
-              name: plant.common_name,
-              photoUrl: plant.photo_url,
-              careUrgency: urgency,
-              careLabel: label,
-            };
-          })
-        );
+        // Map plants to display format; urgency is determined by care log on the detail page
+        const displayPlants: PlantDisplay[] = userPlants.map((plant: IndividualPlant) => ({
+          id: plant.id,
+          name: plant.common_name,
+          photoUrl: plant.photo_url,
+          careUrgency: 'healthy',
+          careLabel: 'Tap to view care history',
+        }));
 
         setPlants(displayPlants);
       } catch (err) {

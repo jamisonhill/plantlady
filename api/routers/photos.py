@@ -64,6 +64,7 @@ async def upload_photo(
     file: UploadFile = File(...),
     caption: Optional[str] = None,
     event_id: Optional[int] = None,
+    taken_at: Optional[str] = None,  # ISO date string, e.g. "2026-03-01"
     user_id: int = None,  # Injected from session
     db: Session = Depends(get_db)
 ):
@@ -123,13 +124,24 @@ async def upload_photo(
             detail=f"Failed to save file: {str(e)}"
         )
 
+    # Parse taken_at if provided, otherwise leave as None
+    parsed_taken_at = None
+    if taken_at:
+        from datetime import datetime
+        try:
+            # Accept YYYY-MM-DD or full ISO string
+            parsed_taken_at = datetime.fromisoformat(taken_at)
+        except ValueError:
+            pass  # Invalid format — just leave taken_at as None
+
     # Create database record
     photo = Photo(
         batch_id=batch_id,
         event_id=event_id,
         user_id=user_id,
         filename=new_filename,
-        caption=caption
+        caption=caption,
+        taken_at=parsed_taken_at,
     )
     db.add(photo)
     db.commit()

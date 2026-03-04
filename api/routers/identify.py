@@ -93,7 +93,7 @@ async def identify_plant(file: UploadFile = File(...)):
     try:
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             messages=[
                 {

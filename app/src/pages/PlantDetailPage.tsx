@@ -1,66 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PlantHeroSection } from '../components/PlantHeroSection';
-import { PlantCareStatusCard } from '../components/PlantCareStatusCard';
-import { PlantDetailTabs } from '../components/PlantDetailTabs';
-import { QuickLogCareModal } from '../components/QuickLogCareModal';
+import { CareCalendar } from '../components/CareCalendar';
+import { CareLog } from '../components/CareLog';
+import { LogCareModal } from '../components/LogCareModal';
+import { Button } from '../components/Button';
 import { client } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { IndividualPlant, CareSchedule, CareEvent } from '../types';
-
-interface CareItem {
-  type: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
-  daysUntilDue: number;
-  isDue: boolean;
-}
-
-interface CareLogEntry {
-  date: string;
-  type: 'WATERING' | 'FERTILIZING' | 'REPOTTING';
-  notes?: string;
-  photoFilename?: string;
-}
-
-// Calculate care items from schedules and events
-function calculateCareItems(
-  schedules: CareSchedule[],
-  events: CareEvent[]
-): CareItem[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return schedules.map((schedule) => {
-    const lastEvent = events.find((e) => e.care_type === schedule.care_type);
-    let daysUntilDue: number;
-
-    if (!lastEvent) {
-      daysUntilDue = -1;
-    } else {
-      const eventDate = new Date(lastEvent.event_date);
-      eventDate.setHours(0, 0, 0, 0);
-      const daysSinceLast = Math.floor(
-        (today.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      daysUntilDue = schedule.frequency_days - daysSinceLast;
-    }
-
-    return {
-      type: schedule.care_type as 'WATERING' | 'FERTILIZING' | 'REPOTTING',
-      daysUntilDue,
-      isDue: daysUntilDue <= 0,
-    };
-  });
-}
-
-// Convert events to care log format, including photo filename if present
-function convertToCareLog(events: CareEvent[]): CareLogEntry[] {
-  return events.map((event) => ({
-    date: new Date(event.event_date).toISOString().split('T')[0],
-    type: event.care_type as 'WATERING' | 'FERTILIZING' | 'REPOTTING',
-    notes: event.notes,
-    photoFilename: event.photo_filename,
-  }));
-}
+import { IndividualPlant, CareEvent, CareType } from '../types';
 
 export const PlantDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,68 +15,60 @@ export const PlantDetailPage: React.FC = () => {
   const auth = useAuth();
 
   const [plant, setPlant] = useState<IndividualPlant | null>(null);
-  const [schedules, setSchedules] = useState<CareSchedule[]>([]);
-  const [careItems, setCareItems] = useState<CareItem[]>([]);
-  const [careLog, setCareLog] = useState<CareLogEntry[]>([]);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedCareType, setSelectedCareType] = useState<'WATERING' | 'FERTILIZING' | 'REPOTTING' | null>(null);
-  const [logLoading, setLogLoading] = useState(false);
+  const [careEvents, setCareEvents] = useState<CareEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  // dateStr to scroll to when user taps a calendar day
+  const [scrollToDate, setScrollToDate] = useState<string | undefined>();
 
   useEffect(() => {
-    async function loadPlantData() {
+    async function loadData() {
       if (!auth.currentUser) return;
-
       try {
-        const [plantData, schedulesData, eventsData] = await Promise.all([
+        const [plantData, eventsData] = await Promise.all([
           client.getPlantDetail(plantId),
-          client.getPlantCareSchedule(plantId),
           client.getPlantCareEvents(plantId),
         ]);
-
         setPlant(plantData);
-        setSchedules(schedulesData);
-        setCareItems(calculateCareItems(schedulesData, eventsData));
-        setCareLog(convertToCareLog(eventsData));
+        setCareEvents(eventsData);
       } catch (err) {
         console.error('Failed to load plant data:', err);
       } finally {
         setLoading(false);
       }
     }
-
-    loadPlantData();
+    loadData();
   }, [plantId, auth?.currentUser]);
 
-  const handleLogCare = (careType: 'WATERING' | 'FERTILIZING' | 'REPOTTING') => {
-    setSelectedCareType(careType);
-    setModalOpen(true);
-  };
+  const handleSubmitCare = async (data: {
+    care_type: CareType;
+    notes?: string;
+    milestone_label?: string;
+    event_date: string;
+    photo?: File;
+  }) => {
+    if (!auth.currentUser) return;
 
-  const handleSubmitCare = async (notes?: string) => {
-    if (!selectedCareType || !auth.currentUser) return;
+    // Log the care event
+    const newEvent = await client.logCareEvent(auth.currentUser.id, plantId, {
+      care_type: data.care_type,
+      event_date: data.event_date,
+      notes: data.notes,
+      milestone_label: data.milestone_label,
+    });
 
-    setLogLoading(true);
-    try {
-      // Log the care event
-      await client.logCareEvent(auth.currentUser!.id, plantId, {
-        care_type: selectedCareType,
-        event_date: new Date().toISOString(),
-        notes,
-      });
-
-      // Re-fetch events to update display
-      const updatedEvents = await client.getPlantCareEvents(plantId);
-      setCareLog(convertToCareLog(updatedEvents));
-      setCareItems(calculateCareItems(schedules, updatedEvents));
-
-      setModalOpen(false);
-      setSelectedCareType(null);
-    } catch (err) {
-      console.error('Failed to log care event:', err);
-    } finally {
-      setLogLoading(false);
+    // Upload photo if one was attached
+    if (data.photo) {
+      try {
+        const updated = await client.uploadCareEventPhoto(plantId, newEvent.id, auth.currentUser.id, data.photo);
+        // Prepend with photo
+        setCareEvents((prev) => [updated, ...prev]);
+      } catch (err) {
+        console.error('Photo upload failed:', err);
+        setCareEvents((prev) => [newEvent, ...prev]);
+      }
+    } else {
+      setCareEvents((prev) => [newEvent, ...prev]);
     }
   };
 
@@ -149,7 +88,6 @@ export const PlantDetailPage: React.FC = () => {
     );
   }
 
-  // Format date added
   const dateAdded = new Date(plant.created_at).toLocaleDateString('en-US', {
     month: 'short',
     year: 'numeric',
@@ -166,38 +104,28 @@ export const PlantDetailPage: React.FC = () => {
           dateAdded={dateAdded}
         />
 
-        <div className="px-4">
-          {/* Care Status Card */}
-          <PlantCareStatusCard
-            careItems={careItems}
-            onLogCare={handleLogCare}
+        <div className="px-4 space-y-4">
+          {/* Log Care button */}
+          <Button variant="primary" fullWidth onClick={() => setModalOpen(true)}>
+            + Log Care
+          </Button>
+
+          {/* Monthly care calendar */}
+          <CareCalendar
+            events={careEvents}
+            onDayClick={(dateStr) => setScrollToDate(dateStr)}
           />
 
-          {/* Detail Tabs */}
-          <PlantDetailTabs
-            careLog={careLog}
-            growthPhotos={[]}
-            healthEntries={[]}
-            onAddPhoto={() => console.log('Add photo')}
-            onLogHealth={() => console.log('Log health issue')}
-          />
+          {/* Written care log */}
+          <CareLog events={careEvents} scrollToDate={scrollToDate} />
         </div>
       </div>
 
-      {/* Quick Log Care Modal */}
-      {selectedCareType && (
-        <QuickLogCareModal
-          isOpen={modalOpen}
-          isLoading={logLoading}
-          plantName={plant.common_name}
-          careType={selectedCareType}
-          onClose={() => {
-            setModalOpen(false);
-            setSelectedCareType(null);
-          }}
-          onSubmit={handleSubmitCare}
-        />
-      )}
+      <LogCareModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleSubmitCare}
+      />
     </div>
   );
 };

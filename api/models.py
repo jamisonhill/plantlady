@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models for PlantLady."""
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, Numeric
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Boolean, ForeignKey, Enum, Numeric
 from sqlalchemy.orm import relationship
 import enum
 
@@ -194,26 +194,12 @@ class IndividualPlant(Base):
     location = Column(String(100), nullable=True)
     photo_url = Column(String(500), nullable=True)  # stored filename
     notes = Column(Text, nullable=True)
+    acquired_date = Column(Date, nullable=True)  # when the user got this plant
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    care_schedules = relationship("CareSchedule", back_populates="plant", cascade="all, delete-orphan")
     care_events = relationship("CareEvent", back_populates="plant", cascade="all, delete-orphan")
     user = relationship("User", back_populates="individual_plants")
-
-
-class CareSchedule(Base):
-    """Care schedule for a plant (watering, fertilizing, etc)."""
-    __tablename__ = "care_schedules"
-
-    id = Column(Integer, primary_key=True)
-    plant_id = Column(Integer, ForeignKey("individual_plants.id"), nullable=False)
-    care_type = Column(String(20), nullable=False)  # WATERING, FERTILIZING, REPOTTING
-    frequency_days = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    plant = relationship("IndividualPlant", back_populates="care_schedules")
 
 
 class CareEvent(Base):
@@ -221,11 +207,15 @@ class CareEvent(Base):
     __tablename__ = "care_events"
 
     id = Column(Integer, primary_key=True)
-    plant_id = Column(Integer, ForeignKey("individual_plants.id"), nullable=False)
+    # plant_id is nullable — batch-level care events won't have a plant_id
+    plant_id = Column(Integer, ForeignKey("individual_plants.id"), nullable=True)
+    # batch_id is nullable — plant-level care events won't have a batch_id
+    batch_id = Column(Integer, ForeignKey("plant_batches.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    care_type = Column(String(20), nullable=False)
+    care_type = Column(String(20), nullable=False)  # WATERING, FERTILIZING, MILESTONE, NOTE
     event_date = Column(DateTime, nullable=False)
     notes = Column(Text, nullable=True)
+    milestone_label = Column(String(100), nullable=True)  # only for MILESTONE type
     photo_filename = Column(String(255), nullable=True)  # optional photo
     created_at = Column(DateTime, default=datetime.utcnow)
 

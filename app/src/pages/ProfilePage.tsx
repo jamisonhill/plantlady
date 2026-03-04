@@ -84,6 +84,41 @@ export const ProfilePage: React.FC = () => {
           </div>
         </Card>
 
+        {/* Analytics Section */}
+        <section className="mb-8">
+          <h2 className="font-display text-lg font-bold text-[var(--color-text)] mb-4">
+            📊 Analytics
+          </h2>
+          <Card
+            className="p-4 cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
+            onClick={() => navigate('/dashboard')}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-body font-medium text-[var(--color-text)]">Season Dashboard</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                  Batches, costs &amp; variety stats
+                </p>
+              </div>
+              <span>→</span>
+            </div>
+          </Card>
+          <Card
+            className="p-4 mt-3 cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
+            onClick={() => navigate('/review')}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-body font-medium text-[var(--color-text)]">Season Review</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                  Year-end recap, repeats &amp; comparison
+                </p>
+              </div>
+              <span>→</span>
+            </div>
+          </Card>
+        </section>
+
         {/* Social Section */}
         <section className="mb-8">
           <h2 className="font-display text-lg font-bold text-[var(--color-text)] mb-4">

@@ -43,7 +43,12 @@ export const PlantIdentifyPage: React.FC = () => {
       });
     } catch (err) {
       console.error('Error identifying plant:', err);
-      setError('Could not identify plant. Please try again with a clearer photo.');
+      // 503 means the API key isn't configured; other errors are photo/network issues
+      if ((err as any).status === 503) {
+        setError('Plant identification is temporarily unavailable. Please try again later.');
+      } else {
+        setError('Could not identify plant. Try a clearer, well-lit photo of the leaves or flowers.');
+      }
     } finally {
       setLoading(false);
     }

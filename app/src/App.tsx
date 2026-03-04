@@ -21,6 +21,8 @@ import { ActivityFeedPage } from './pages/ActivityFeedPage'
 import { AddDistributionPage } from './pages/AddDistributionPage'
 import { CostTrackerPage } from './pages/CostTrackerPage'
 import { AddCostPage } from './pages/AddCostPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { SeasonReviewPage } from './pages/SeasonReviewPage'
 import { AppLayout } from './components/AppLayout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -153,6 +155,26 @@ function App() {
           element={
             <ProtectedRoute>
               <PlantIdentifyResultPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Dashboard Route */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Season Review Route */}
+        <Route
+          path="/review"
+          element={
+            <ProtectedRoute>
+              <SeasonReviewPage />
             </ProtectedRoute>
           }
         />

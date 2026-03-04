@@ -84,23 +84,21 @@ export interface IndividualPlant {
   scientific_name?: string
   location?: string
   photo_url?: string
+  acquired_date?: string
   created_at: string
 }
 
-export interface CareSchedule {
-  id: number
-  plant_id: number
-  care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
-  frequency_days: number
-}
+export type CareType = 'WATERING' | 'FERTILIZING' | 'MILESTONE' | 'NOTE'
 
 export interface CareEvent {
   id: number
-  plant_id: number
+  plant_id?: number | null
+  batch_id?: number | null
   user_id: number
-  care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
+  care_type: CareType
   event_date: string
   notes?: string
+  milestone_label?: string | null
   photo_filename?: string
   created_at: string
 }

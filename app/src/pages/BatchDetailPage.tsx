@@ -3,7 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { PhotoModal } from '../components/PhotoModal';
-import { Batch, Event, Variety, Distribution, DistributionSummary, Photo } from '../types';
+import { CareCalendar } from '../components/CareCalendar';
+import { CareLog } from '../components/CareLog';
+import { LogCareModal } from '../components/LogCareModal';
+import { Batch, Event, Variety, Distribution, DistributionSummary, Photo, CareEvent, CareType } from '../types';
 import { client } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -51,8 +54,14 @@ export const BatchDetailPage: React.FC = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Staged photo: file selected but not yet uploaded — waiting for date confirmation
+  const [stagedPhoto, setStagedPhoto] = useState<File | null>(null);
+  const [stagedPhotoDate, setStagedPhotoDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [careEvents, setCareEvents] = useState<CareEvent[]>([]);
+  const [careModalOpen, setCareModalOpen] = useState(false);
+  const [scrollToDate, setScrollToDate] = useState<string | undefined>();
 
   const batchId = parseInt(id || '0', 10);
 
@@ -61,14 +70,15 @@ export const BatchDetailPage: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Fetch batch, events, varieties, distributions, and photos in parallel
-      const [batchData, eventsData, varietiesData, distData, summaryData, photosData] = await Promise.all([
+      // Fetch batch, events, varieties, distributions, photos, and care events in parallel
+      const [batchData, eventsData, varietiesData, distData, summaryData, photosData, careData] = await Promise.all([
         client.getBatchById(batchId),
         client.getEventsForBatch(batchId),
         client.getVarieties(),
         client.getDistributions(batchId),
         client.getDistributionSummary(batchId),
         client.getBatchGallery(batchId),
+        client.getBatchCareEvents(batchId),
       ]);
 
       setBatch(batchData);
@@ -77,6 +87,7 @@ export const BatchDetailPage: React.FC = () => {
       setDistributions(distData);
       setDistSummary(summaryData);
       setPhotos(photosData);
+      setCareEvents(careData);
     } catch (err) {
       console.error('Error loading batch:', err);
       setError('Failed to load batch details');
@@ -90,6 +101,24 @@ export const BatchDetailPage: React.FC = () => {
       loadData();
     }
   }, [batchId]);
+
+  // Log a care event for this batch
+  const handleSubmitBatchCare = async (data: {
+    care_type: CareType;
+    notes?: string;
+    milestone_label?: string;
+    event_date: string;
+    photo?: File;
+  }) => {
+    if (!auth.currentUser) return;
+    const newEvent = await client.logBatchCareEvent(auth.currentUser.id, batchId, {
+      care_type: data.care_type,
+      event_date: data.event_date,
+      notes: data.notes,
+      milestone_label: data.milestone_label,
+    });
+    setCareEvents((prev) => [newEvent, ...prev]);
+  };
 
   // Delete a distribution with confirmation
   const handleDeleteDistribution = async (distId: number) => {
@@ -213,6 +242,28 @@ export const BatchDetailPage: React.FC = () => {
               )}
             </div>
           </Card>
+
+          {/* Care History */}
+          <div>
+            <h3 className="font-body font-medium text-[var(--color-text)] mb-3">
+              💧 Care History
+            </h3>
+            <Button
+              variant="secondary"
+              fullWidth
+              className="mb-3"
+              onClick={() => setCareModalOpen(true)}
+            >
+              + Log Care
+            </Button>
+            <CareCalendar
+              events={careEvents}
+              onDayClick={(dateStr) => setScrollToDate(dateStr)}
+            />
+            <div className="mt-4">
+              <CareLog events={careEvents} scrollToDate={scrollToDate} />
+            </div>
+          </div>
 
           {/* Event Timeline */}
           <div>
@@ -378,39 +429,84 @@ export const BatchDetailPage: React.FC = () => {
               </Card>
             )}
 
-            {/* Hidden file input for photo upload */}
+            {/* Hidden file input — on selection, stage the file for date confirmation */}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={async (e) => {
+              onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file || !auth.currentUser) return;
-                setUploadLoading(true);
-                try {
-                  const newPhoto = await client.uploadPhoto(auth.currentUser.id, batchId, file);
-                  // Prepend new photo to the gallery
-                  setPhotos((prev) => [newPhoto, ...prev]);
-                } catch (err) {
-                  console.error('Photo upload failed:', err);
-                } finally {
-                  setUploadLoading(false);
-                  // Reset input so same file can be re-selected
-                  e.target.value = '';
-                }
+                if (!file) return;
+                // Default date = today (YYYY-MM-DD local)
+                const d = new Date();
+                const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                setStagedPhoto(file);
+                setStagedPhotoDate(today);
+                // Reset input so same file can be re-selected later
+                e.target.value = '';
               }}
             />
 
-            <Button
-              variant="secondary"
-              fullWidth
-              disabled={uploadLoading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {uploadLoading ? 'Uploading...' : '+ Add Photo'}
-            </Button>
+            {/* Staged photo confirmation UI */}
+            {stagedPhoto ? (
+              <div className="border border-[var(--color-border)] rounded-xl p-4 space-y-3">
+                <p className="text-sm text-[var(--color-text)] font-medium truncate">{stagedPhoto.name}</p>
+                <div>
+                  <label className="text-xs text-[var(--color-text-2)] block mb-1">Date taken</label>
+                  <input
+                    type="date"
+                    value={stagedPhotoDate}
+                    max={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
+                    onChange={(e) => setStagedPhotoDate(e.target.value)}
+                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-brand-sage"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    fullWidth
+                    onClick={() => setStagedPhoto(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    disabled={uploadLoading}
+                    onClick={async () => {
+                      if (!auth.currentUser || !stagedPhoto) return;
+                      setUploadLoading(true);
+                      try {
+                        const newPhoto = await client.uploadPhoto(
+                          auth.currentUser.id,
+                          batchId,
+                          stagedPhoto,
+                          stagedPhotoDate || undefined
+                        );
+                        setPhotos((prev) => [newPhoto, ...prev]);
+                        setStagedPhoto(null);
+                      } catch (err) {
+                        console.error('Photo upload failed:', err);
+                      } finally {
+                        setUploadLoading(false);
+                      }
+                    }}
+                  >
+                    {uploadLoading ? 'Uploading…' : 'Upload'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => fileInputRef.current?.click()}
+              >
+                + Add Photo
+              </Button>
+            )}
           </div>
 
           {/* Photo modal — fullscreen viewer with delete */}
@@ -432,6 +528,12 @@ export const BatchDetailPage: React.FC = () => {
 
         </div>
       </div>
+
+      <LogCareModal
+        isOpen={careModalOpen}
+        onClose={() => setCareModalOpen(false)}
+        onSubmit={handleSubmitBatchCare}
+      />
     </div>
   );
 };

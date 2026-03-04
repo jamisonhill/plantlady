@@ -1,6 +1,6 @@
 """Pydantic request/response schemas for FastAPI."""
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from pydantic import BaseModel
 
@@ -271,29 +271,19 @@ class IndividualPlantCreate(BaseModel):
     scientific_name: Optional[str] = None
     location: Optional[str] = None
     notes: Optional[str] = None
+    acquired_date: Optional[date] = None  # when the user got this plant
 
 
-class IndividualPlantResponse(IndividualPlantCreate):
+class IndividualPlantResponse(BaseModel):
     """Individual plant response."""
     id: int
     user_id: int
+    common_name: str
+    scientific_name: Optional[str] = None
+    location: Optional[str] = None
+    notes: Optional[str] = None
+    acquired_date: Optional[date] = None
     photo_url: Optional[str] = None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class CareScheduleCreate(BaseModel):
-    """Create care schedule request."""
-    care_type: str  # WATERING, FERTILIZING, REPOTTING
-    frequency_days: int
-
-
-class CareScheduleResponse(CareScheduleCreate):
-    """Care schedule response."""
-    id: int
-    plant_id: int
     created_at: datetime
 
     class Config:
@@ -302,15 +292,17 @@ class CareScheduleResponse(CareScheduleCreate):
 
 class CareEventCreate(BaseModel):
     """Create care event request."""
-    care_type: str
+    care_type: str  # WATERING, FERTILIZING, MILESTONE, NOTE
     event_date: datetime
     notes: Optional[str] = None
+    milestone_label: Optional[str] = None  # only for MILESTONE type
+    batch_id: Optional[int] = None  # set for batch-level care events
 
 
 class CareEventResponse(CareEventCreate):
     """Care event response."""
     id: int
-    plant_id: int
+    plant_id: Optional[int] = None
     user_id: int
     photo_filename: Optional[str] = None
     created_at: datetime

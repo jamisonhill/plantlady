@@ -9,12 +9,10 @@ import os
 import uuid
 
 from database import get_db
-from models import IndividualPlant, CareSchedule, CareEvent, User
+from models import IndividualPlant, CareEvent, User
 from schemas import (
     IndividualPlantCreate,
     IndividualPlantResponse,
-    CareScheduleCreate,
-    CareScheduleResponse,
     CareEventCreate,
     CareEventResponse,
 )
@@ -64,7 +62,8 @@ async def create_plant(
         common_name=plant_data.common_name,
         scientific_name=plant_data.scientific_name,
         location=plant_data.location,
-        notes=plant_data.notes
+        notes=plant_data.notes,
+        acquired_date=plant_data.acquired_date,
     )
     db.add(plant)
     db.commit()
@@ -111,9 +110,41 @@ async def update_plant(
     return plant
 
 
+@router.post("/{plant_id}/photo", response_model=IndividualPlantResponse)
+async def upload_plant_photo(
+    plant_id: int,
+    user_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Upload or replace the hero photo for an individual plant."""
+    plant = db.query(IndividualPlant).filter(IndividualPlant.id == plant_id).first()
+    if not plant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plant not found")
+
+    file_extension = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
+    unique_filename = f"{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join(PHOTOS_DIR, unique_filename)
+
+    try:
+        contents = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(contents)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save photo: {str(e)}"
+        )
+
+    plant.photo_url = unique_filename
+    db.commit()
+    db.refresh(plant)
+    return plant
+
+
 @router.delete("/{plant_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plant(plant_id: int, db: Session = Depends(get_db)):
-    """Delete individual plant (cascades to care schedules and events)."""
+    """Delete individual plant (cascades to care events)."""
     plant = db.query(IndividualPlant).filter(IndividualPlant.id == plant_id).first()
 
     if not plant:
@@ -124,56 +155,6 @@ async def delete_plant(plant_id: int, db: Session = Depends(get_db)):
 
     db.delete(plant)
     db.commit()
-
-
-# ============================================================================
-# Care Schedules
-# ============================================================================
-
-@router.get("/{plant_id}/care-schedule", response_model=list[CareScheduleResponse])
-async def get_care_schedules(plant_id: int, db: Session = Depends(get_db)):
-    """Get care schedules for a plant."""
-    schedules = db.query(CareSchedule).filter(
-        CareSchedule.plant_id == plant_id
-    ).all()
-    return schedules
-
-
-@router.post("/{plant_id}/care-schedule", response_model=CareScheduleResponse, status_code=status.HTTP_201_CREATED)
-async def create_or_update_care_schedule(
-    plant_id: int,
-    user_id: int,
-    schedule_data: CareScheduleCreate,
-    db: Session = Depends(get_db)
-):
-    """Create or update (upsert) care schedule for a plant.
-
-    If a schedule already exists for this care_type, it's deleted and replaced.
-    """
-    # Verify plant exists
-    plant = db.query(IndividualPlant).filter(IndividualPlant.id == plant_id).first()
-    if not plant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plant not found"
-        )
-
-    # Delete existing schedule for this care type
-    db.query(CareSchedule).filter(
-        CareSchedule.plant_id == plant_id,
-        CareSchedule.care_type == schedule_data.care_type
-    ).delete()
-
-    # Create new schedule
-    schedule = CareSchedule(
-        plant_id=plant_id,
-        care_type=schedule_data.care_type,
-        frequency_days=schedule_data.frequency_days
-    )
-    db.add(schedule)
-    db.commit()
-    db.refresh(schedule)
-    return schedule
 
 
 # ============================================================================
@@ -215,7 +196,8 @@ async def log_care_event(
         user_id=user_id,
         care_type=event_data.care_type,
         event_date=event_data.event_date,
-        notes=event_data.notes
+        notes=event_data.notes,
+        milestone_label=event_data.milestone_label,
     )
     db.add(event)
     db.commit()
@@ -261,6 +243,46 @@ async def upload_care_event_photo(
 
     # Update event with photo filename
     event.photo_filename = unique_filename
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+# ============================================================================
+# Batch Care Events
+# ============================================================================
+
+@router.get("/batch/{batch_id}/care-events", response_model=list[CareEventResponse])
+async def get_batch_care_events(
+    batch_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get care events for a batch (ordered by event_date descending)."""
+    events = db.query(CareEvent).filter(
+        CareEvent.batch_id == batch_id
+    ).order_by(CareEvent.event_date.desc()).offset(skip).limit(limit).all()
+    return events
+
+
+@router.post("/batch/{batch_id}/care-events", response_model=CareEventResponse, status_code=status.HTTP_201_CREATED)
+async def log_batch_care_event(
+    batch_id: int,
+    user_id: int,
+    event_data: CareEventCreate,
+    db: Session = Depends(get_db)
+):
+    """Log a care event for a batch."""
+    event = CareEvent(
+        batch_id=batch_id,
+        user_id=user_id,
+        care_type=event_data.care_type,
+        event_date=event_data.event_date,
+        notes=event_data.notes,
+        milestone_label=event_data.milestone_label,
+    )
+    db.add(event)
     db.commit()
     db.refresh(event)
     return event

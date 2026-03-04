@@ -1,4 +1,4 @@
-import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareSchedule, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal, Photo, IdentifyResult } from '../types'
+import { User, Season, Variety, Batch, Event, EventType, IndividualPlant, CareEvent, CareType, UserStats, Distribution, DistributionCreate, DistributionSummary, SeasonCost, SeasonCostCreate, SeasonCostTotal, Photo, IdentifyResult } from '../types'
 
 const API_BASE = '/api'
 
@@ -100,10 +100,12 @@ export const client = {
   },
 
   // Photos
-  async uploadPhoto(userId: number, batchId: number, file: File): Promise<Photo> {
+  async uploadPhoto(userId: number, batchId: number, file: File, takenAt?: string): Promise<Photo> {
     const form = new FormData()
     form.append('file', file)
-    const response = await fetch(`${API_BASE}/photos/upload?user_id=${userId}&batch_id=${batchId}`, {
+    const params = new URLSearchParams({ user_id: String(userId), batch_id: String(batchId) })
+    if (takenAt) params.append('taken_at', takenAt)
+    const response = await fetch(`${API_BASE}/photos/upload?${params}`, {
       method: 'POST',
       body: form
     })
@@ -135,15 +137,11 @@ export const client = {
     return handleResponse<CareEvent[]>(response)
   },
 
-  async getPlantCareSchedule(plantId: number): Promise<CareSchedule[]> {
-    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-schedule`)
-    return handleResponse<CareSchedule[]>(response)
-  },
-
   async logCareEvent(userId: number, plantId: number, data: {
-    care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
+    care_type: CareType
     event_date: string
     notes?: string
+    milestone_label?: string
   }): Promise<CareEvent> {
     const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-events?user_id=${userId}`, {
       method: 'POST',
@@ -158,11 +156,22 @@ export const client = {
     return handleResponse<IndividualPlant>(response)
   },
 
+  async uploadPlantPhoto(plantId: number, userId: number, file: File): Promise<IndividualPlant> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/photo?user_id=${userId}`, {
+      method: 'POST',
+      body: form
+    })
+    return handleResponse<IndividualPlant>(response)
+  },
+
   async createIndividualPlant(userId: number, data: {
     common_name: string
     scientific_name?: string
     location?: string
     notes?: string
+    acquired_date?: string
   }): Promise<IndividualPlant> {
     const response = await fetch(`${API_BASE}/individual-plants?user_id=${userId}`, {
       method: 'POST',
@@ -172,16 +181,23 @@ export const client = {
     return handleResponse<IndividualPlant>(response)
   },
 
-  async createCareSchedule(plantId: number, userId: number, data: {
-    care_type: 'WATERING' | 'FERTILIZING' | 'REPOTTING'
-    frequency_days: number
-  }): Promise<CareSchedule> {
-    const response = await fetch(`${API_BASE}/individual-plants/${plantId}/care-schedule?user_id=${userId}`, {
+  async getBatchCareEvents(batchId: number): Promise<CareEvent[]> {
+    const response = await fetch(`${API_BASE}/individual-plants/batch/${batchId}/care-events`)
+    return handleResponse<CareEvent[]>(response)
+  },
+
+  async logBatchCareEvent(userId: number, batchId: number, data: {
+    care_type: CareType
+    event_date: string
+    notes?: string
+    milestone_label?: string
+  }): Promise<CareEvent> {
+    const response = await fetch(`${API_BASE}/individual-plants/batch/${batchId}/care-events?user_id=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     })
-    return handleResponse<CareSchedule>(response)
+    return handleResponse<CareEvent>(response)
   },
 
   async uploadCareEventPhoto(plantId: number, eventId: number, userId: number, file: File): Promise<CareEvent> {
@@ -262,6 +278,12 @@ export const client = {
       method: 'POST',
       body: form
     })
-    return handleResponse<IdentifyResult>(response)
+    if (!response.ok) {
+      // Attach HTTP status so callers can show the right error message
+      const err = new Error(`API error: ${response.status}`) as Error & { status: number }
+      err.status = response.status
+      throw err
+    }
+    return response.json()
   }
 }

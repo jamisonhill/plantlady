@@ -17,6 +17,12 @@ export default function LogEventPage() {
   const [notes, setNotes] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [error, setError] = useState('')
+  // Default to today in YYYY-MM-DD format
+  const todayStr = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+  const [eventDate, setEventDate] = useState(todayStr)
 
   if (!batchId || !currentUser) {
     return null
@@ -32,13 +38,11 @@ export default function LogEventPage() {
 
     setStep('saving')
     try {
-      const eventDate = new Date()
-      const dateString = eventDate.toISOString().split('T')[0]
-
       await client.createEvent(currentUser.id, {
         batch_id: parseInt(batchId),
         event_type: selectedEventType,
-        event_date: new Date(dateString + 'T12:00:00').toISOString(),
+        // Noon local time so it stays on the correct calendar day regardless of timezone
+        event_date: new Date(eventDate + 'T12:00:00').toISOString(),
         notes: notes || undefined
       })
 
@@ -91,6 +95,17 @@ export default function LogEventPage() {
             )}
 
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-sage-900 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={eventDate}
+                  max={todayStr}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full border border-sage-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sage-400 bg-white"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-sage-900 mb-2">Notes (optional)</label>
                 <textarea
